@@ -1,20 +1,22 @@
 package com.wuyinai.wuaipdce.controller;
 
 import com.mybatisflex.core.paginate.Page;
+import com.wuyinai.wuaipdce.annotation.AuthCheck;
 import com.wuyinai.wuaipdce.common.BaseResponse;
+import com.wuyinai.wuaipdce.common.DeleteRequest;
 import com.wuyinai.wuaipdce.common.ResultUtils;
+import com.wuyinai.wuaipdce.constant.UserConstant;
+import com.wuyinai.wuaipdce.exception.BusinessException;
 import com.wuyinai.wuaipdce.exception.ErrorCode;
 import com.wuyinai.wuaipdce.exception.ThrowUtils;
-import com.wuyinai.wuaipdce.model.dto.user.UserLoginRequest;
-import com.wuyinai.wuaipdce.model.dto.user.UserRegisterRequest;
+import com.wuyinai.wuaipdce.model.dto.user.*;
 import com.wuyinai.wuaipdce.model.entity.User;
 import com.wuyinai.wuaipdce.model.vo.LoginUserVO;
+import com.wuyinai.wuaipdce.model.vo.UserVO;
 import com.wuyinai.wuaipdce.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 /**
  * 用户 控制层。
@@ -79,4 +81,73 @@ public class UserController {
         boolean result = userService.userLogout(request);
         return ResultUtils.success(result);
     }
+    /**
+     * 创建用户
+     */
+    @PostMapping("/add")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<Long> addUser(@RequestBody UserAddRequest userAddRequest) {
+        ThrowUtils.throwIf(userAddRequest == null, ErrorCode.PARAMS_ERROR);
+        Long userId = userService.addUser(userAddRequest);
+        return ResultUtils.success(userId);
+    }
+
+    /**
+     * 根据 id 获取用户（仅管理员）
+     */
+    @GetMapping("/get")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<User> getUserById(long id) {
+        ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
+        User user = userService.getUserById(id);
+        return ResultUtils.success(user);
+    }
+
+    /**
+     * 根据 id 获取包装类
+     */
+    @GetMapping("/get/vo")
+    public BaseResponse<UserVO> getUserVOById(long id) {
+        UserVO user = userService.getUserVOById(id);
+        return ResultUtils.success(user);
+    }
+
+    /**
+     * 删除用户
+     */
+    @PostMapping("/delete")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<Boolean> deleteUser(@RequestBody DeleteRequest deleteRequest) {
+        if (deleteRequest == null || deleteRequest.getId() <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        boolean b = userService.deleteUser(deleteRequest);
+        return ResultUtils.success(b);
+    }
+
+    /**
+     * 更新用户
+     */
+    @PostMapping("/update")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<Boolean> updateUser(@RequestBody UserUpdateRequest userUpdateRequest) {
+       if (userUpdateRequest == null || userUpdateRequest.getId() == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        boolean result = userService.updateUser(userUpdateRequest);
+        return ResultUtils.success(result);
+    }
+
+    /**
+     * 分页获取用户封装列表（仅管理员）
+     *
+     * @param userQueryRequest 查询请求参数
+     */
+    @PostMapping("/list/page/vo")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<Page<UserVO>> listUserVOByPage(@RequestBody UserQueryRequest userQueryRequest) {
+        Page<UserVO> userVOPage = userService.listUserVOByPage(userQueryRequest);
+        return ResultUtils.success(userVOPage);
+    }
+
 }
