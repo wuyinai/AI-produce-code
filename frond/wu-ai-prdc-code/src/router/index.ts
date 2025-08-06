@@ -9,22 +9,22 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      name: 'home',
+      name: '首页',
       component: HomeView,
     },
     {
       path: '/user/login',
-      name: 'user-login',
+      name: '登录页',
       component: UserLogin,
     },
     {
       path: '/user/register',
-      name: 'user-register',
+      name: '注册页',
       component: UserRegister,
     },
     {
       path: '/admin/userlist',
-      name: 'user-manage',
+      name: '用户信息页',
       component: UserManage,
     },
   ],
