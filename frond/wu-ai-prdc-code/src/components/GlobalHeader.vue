@@ -22,7 +22,25 @@
       <!-- 右侧：用户操作区域 -->
       <a-col>
         <div class="user-login-status">
-          <a-button type="primary">登录</a-button>
+          <div v-if="loginUserStore.loginUser.id">
+            <a-dropdown>
+              <a-space>
+                <a-avatar :src="loginUserStore.loginUser.userAvatar" />
+                {{ loginUserStore.loginUser.userName ?? '无名' }}
+              </a-space>
+              <template #overlay>
+                <a-menu>
+                  <a-menu-item @click="loginout">
+                    <LogoutOutlined />
+                    退出登录
+                  </a-menu-item>
+                </a-menu>
+              </template>
+            </a-dropdown>
+          </div>
+          <div v-else>
+            <a-button type="primary" href="/user/login">登录</a-button>
+          </div>
         </div>
       </a-col>
     </a-row>
@@ -32,7 +50,12 @@
 <script setup lang="ts">
 import { h, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import type { MenuProps } from 'ant-design-vue'
+import { type MenuProps, message } from 'ant-design-vue'
+import { LogoutOutlined } from '@ant-design/icons-vue'
+// JS 中引入 Store，获取当前登录用户信息
+import { useLoginUserStore } from '@/stores/loginUser.ts'
+import { userLogout } from '@/api/userController.ts'
+const loginUserStore = useLoginUserStore()
 
 const router = useRouter()
 // 当前选中菜单
@@ -56,7 +79,7 @@ const menuItems = ref([
   },
   {
     key: 'others',
-    label: h('a', { href: 'https://www.codefather.cn', target: '_blank' }, '编程导航'),
+    label: h('a', { href: 'https://www.codefather.cn', target: '_blank' }, '超级智能'),
     title: '超级智能',
   },
 ])
@@ -70,6 +93,21 @@ const handleMenuClick: MenuProps['onClick'] = (e) => {
     router.push(key)
   }
 }
+
+// 用户注销
+const loginout = async () => {
+  const res = await userLogout()
+  if (res.data.code === 0) {
+    loginUserStore.setLoginUser({
+      userName: '未登录',
+    })
+    message.success('退出登录成功')
+    await router.push('/user/login')
+  } else {
+    message.error('退出登录失败，' + res.data.message)
+  }
+}
+
 </script>
 
 <style scoped>
