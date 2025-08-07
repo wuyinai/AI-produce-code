@@ -3,11 +3,18 @@ package com.wuyinai.wuaipdce;
 import com.wuyinai.wuaipdce.ai.AiCodeGeneratorService;
 import com.wuyinai.wuaipdce.ai.model.HtmlCodeResult;
 import com.wuyinai.wuaipdce.ai.model.MultiFileCodeResult;
+import com.wuyinai.wuaipdce.model.enums.CodeGenTypeEnum;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import reactor.core.publisher.Flux;
 
+import java.util.List;
+
+/**
+ * 测试一般的代码生成器
+ */
 @SpringBootTest
 class AiCodeGeneratorServiceTest {
 
@@ -25,4 +32,6 @@ class AiCodeGeneratorServiceTest {
         MultiFileCodeResult multiFileCode = aiCodeGeneratorService.generateMultiHtmlCode("做个程序员鱼皮的留言板");
         Assertions.assertNotNull(multiFileCode);
     }
+
+
 }
