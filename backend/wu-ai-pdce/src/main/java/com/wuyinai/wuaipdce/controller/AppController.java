@@ -10,10 +10,8 @@ import com.wuyinai.wuaipdce.constant.UserConstant;
 import com.wuyinai.wuaipdce.exception.BusinessException;
 import com.wuyinai.wuaipdce.exception.ErrorCode;
 import com.wuyinai.wuaipdce.exception.ThrowUtils;
-import com.wuyinai.wuaipdce.model.dto.app.AppAddRequest;
-import com.wuyinai.wuaipdce.model.dto.app.AppAdminUpdateRequest;
-import com.wuyinai.wuaipdce.model.dto.app.AppQueryRequest;
-import com.wuyinai.wuaipdce.model.dto.app.AppUpdateRequest;
+import com.wuyinai.wuaipdce.model.dto.app.*;
+import com.wuyinai.wuaipdce.model.entity.App;
 import com.wuyinai.wuaipdce.model.entity.User;
 import com.wuyinai.wuaipdce.model.vo.AppVO;
 import com.wuyinai.wuaipdce.service.AppService;
@@ -220,5 +218,24 @@ public class AppController {
                         .data("")
                         .build()
         ));
+    }
+
+    /**
+     * 部署应用
+     *
+     * @param appDeployRequest
+     * @return 部署结果
+     */
+    @PostMapping("/deploy")
+    public BaseResponse<String> deployApp(@RequestBody AppDeployRequest appDeployRequest, HttpServletRequest request) {
+        ThrowUtils.throwIf(appDeployRequest == null, ErrorCode.PARAMS_ERROR);
+        Long appId = appDeployRequest.getAppId();
+        ThrowUtils.throwIf(appId == null||appId <= 0, ErrorCode.PARAMS_ERROR, "应用id不能为空");
+        //获取用户信息
+        User loginUser = userService.getLoginUser(request);
+        //调用服务部署应用
+        String deployResult = appService.deployApp(appId, loginUser);
+        return ResultUtils.success(deployResult);
+
     }
 }

@@ -18,8 +18,7 @@ router.beforeEach(async (to, from, next) => {
     firstFetchLoginUser = false
   }
   const toUrl = to.fullPath
-  // 获取用户即将访问的页面的完整路径。
-  if (toUrl.startsWith('/admin')) {//判断是否以什么开头
+  if (toUrl.startsWith('/admin')) {
     if (!loginUser || loginUser.userRole !== 'admin') {
       message.error('没有权限')
       next(`/user/login?redirect=${to.fullPath}`)

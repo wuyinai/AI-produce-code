@@ -11,60 +11,47 @@
       <a-form-item>
         <a-button type="primary" html-type="submit">搜索</a-button>
       </a-form-item>
-      <a-form-item>
-        <a-button type="primary" html-type="submit" @click="doClear">清空</a-button>
-      </a-form-item>
     </a-form>
     <a-divider />
     <!-- 表格 -->
+    <a-table
+      :columns="columns"
+      :data-source="data"
+      :pagination="pagination"
+      @change="doTableChange"
+    >
+      <template #bodyCell="{ column, record }">
+        <template v-if="column.dataIndex === 'userAvatar'">
+          <a-image :src="record.userAvatar" :width="120" />
+        </template>
+        <template v-else-if="column.dataIndex === 'userRole'">
+          <div v-if="record.userRole === 'admin'">
+            <a-tag color="green">管理员</a-tag>
+          </div>
+          <div v-else>
+            <a-tag color="blue">普通用户</a-tag>
+          </div>
+        </template>
+        <template v-else-if="column.dataIndex === 'createTime'">
+          {{ dayjs(record.createTime).format('YYYY-MM-DD HH:mm:ss') }}
+        </template>
+        <template v-else-if="column.key === 'action'">
+          <a-button danger @click="doDelete(record.id)">删除</a-button>
+        </template>
+      </template>
+    </a-table>
   </div>
-
-  <a-table :columns="columns" :data-source="data" :pagination="pagination" @change="doTableChange" :bordered=true>
-    <template #headerCell="{ column }">
-      <template v-if="column.key === 'id'">
-        <span>
-          <AliwangwangOutlined />
-          {{ column.title }}
-        </span>
-      </template>
-    </template>
-
-    <template #bodyCell="{ column, record }">
-      <template v-if="column.dataIndex === 'userAvatar'">
-        <a-image :src="record.userAvatar" width="120px"/>
-      </template>
-      <template v-else-if="column.dataIndex === 'userRole'">
-        <div v-if="record.userRole === 'admin'">
-          <a-tag color="blue">管理员</a-tag>
-        </div>
-        <div v-else>
-          <a-tag color="green">普通用户</a-tag>
-        </div>
-      </template>
-      <template v-else-if="column.dataIndex === 'createTime'">
-        {{ dayjs(record.createTime).format('YYYY-MM-DD HH:mm:ss') }}
-      </template>
-      <template v-else-if="column.key === 'action'">
-        <a-button type="primary">修改</a-button>
-        <a-button danger>删除</a-button>
-      </template>
-    </template>
-  </a-table>
 </template>
-
 <script lang="ts" setup>
-import { AliwangwangOutlined, DownOutlined } from '@ant-design/icons-vue'
 import { computed, onMounted, reactive, ref } from 'vue'
-import dayjs from 'dayjs'
-import { listUserVoByPage } from '@/api/userController.ts'
+import { deleteUser, listUserVoByPage } from '@/api/userController.ts'
 import { message } from 'ant-design-vue'
+import dayjs from 'dayjs'
 
-const data = ref<API.UserVO[]>([])
 const columns = [
   {
     title: 'id',
     dataIndex: 'id',
-    key: 'id',
   },
   {
     title: '账号',
@@ -85,7 +72,6 @@ const columns = [
   {
     title: '用户角色',
     dataIndex: 'userRole',
-    key: 'tags',
   },
   {
     title: '创建时间',
@@ -96,7 +82,9 @@ const columns = [
     key: 'action',
   },
 ]
-// 数据
+
+// 展示的数据
+const data = ref<API.UserVO[]>([])
 const total = ref(0)
 
 // 搜索条件
@@ -109,8 +97,6 @@ const searchParams = reactive<API.UserQueryRequest>({
 const fetchData = async () => {
   const res = await listUserVoByPage({
     ...searchParams,
-    //   pageNum: '1',
-    //   pageSize: 10,
   })
   if (res.data.data) {
     data.value = res.data.data.records ?? []
@@ -121,7 +107,6 @@ const fetchData = async () => {
 }
 
 // 分页参数
-// computed 创建一个计算属性 pagination
 const pagination = computed(() => {
   return {
     current: searchParams.pageNum ?? 1,
@@ -131,25 +116,34 @@ const pagination = computed(() => {
     showTotal: (total: number) => `共 ${total} 条`,
   }
 })
-// 表格变化处理
-const doTableChange = (page: any) => {
+
+// 表格分页变化时的操作
+const doTableChange = (page: { current: number; pageSize: number }) => {
   searchParams.pageNum = page.current
   searchParams.pageSize = page.pageSize
   fetchData()
 }
 
-// 获取数据
+// 搜索数据
 const doSearch = () => {
   // 重置页码
   searchParams.pageNum = 1
   fetchData()
 }
 
-// 清空搜索条件
-const doClear = () => {
-  searchParams.userAccount = ''
-  searchParams.userName = ''
-  doSearch()
+// 删除数据
+const doDelete = async (id: string) => {
+  if (!id) {
+    return
+  }
+  const res = await deleteUser({ id })
+  if (res.data.code === 0) {
+    message.success('删除成功')
+    // 刷新数据
+    fetchData()
+  } else {
+    message.error('删除失败')
+  }
 }
 
 // 页面加载时请求一次
@@ -157,3 +151,11 @@ onMounted(() => {
   fetchData()
 })
 </script>
+
+<style scoped>
+#userManagePage {
+  padding: 24px;
+  background: white;
+  margin-top: 16px;
+}
+</style>

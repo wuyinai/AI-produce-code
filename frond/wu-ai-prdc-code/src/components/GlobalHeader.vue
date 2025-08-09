@@ -6,7 +6,7 @@
         <RouterLink to="/">
           <div class="header-left">
             <img class="logo" src="@/assets/logo.png" alt="Logo" />
-            <h1 class="site-title">奈奈应用生成</h1>
+            <h1 class="site-title">AI应用生成</h1>
           </div>
         </RouterLink>
       </a-col>
@@ -26,11 +26,11 @@
             <a-dropdown>
               <a-space>
                 <a-avatar :src="loginUserStore.loginUser.userAvatar" />
-                {{ loginUserStore.loginUser.userName ?? '无名' }}
+                {{ loginUserStore.loginUser.userName ?? '无名氏' }}
               </a-space>
               <template #overlay>
                 <a-menu>
-                  <a-menu-item @click="loginout">
+                  <a-menu-item @click="doLogout">
                     <LogoutOutlined />
                     退出登录
                   </a-menu-item>
@@ -51,14 +51,11 @@
 import { computed, h, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { type MenuProps, message } from 'ant-design-vue'
-import { LogoutOutlined,HomeOutlined} from '@ant-design/icons-vue'
-// JS 中引入 Store，获取当前登录用户信息
 import { useLoginUserStore } from '@/stores/loginUser.ts'
 import { userLogout } from '@/api/userController.ts'
-
+import { LogoutOutlined, HomeOutlined } from '@ant-design/icons-vue'
 
 const loginUserStore = useLoginUserStore()
-
 const router = useRouter()
 // 当前选中菜单
 const selectedKeys = ref<string[]>(['/'])
@@ -76,13 +73,18 @@ const originItems = [
     title: '主页',
   },
   {
-    key: '/admin/userlist',
+    key: '/admin/userManage',
     label: '用户管理',
     title: '用户管理',
   },
   {
+    key: '/admin/appManage',
+    label: '应用管理',
+    title: '应用管理',
+  },
+  {
     key: 'others',
-    label: h('a', { href: 'https://www.codefather.cn', target: '_blank' }, '超级智能'),
+    label: h('a', { href: 'href="https://github.com/wuyinai', target: '_blank' }, '超级智能'),
     title: '超级智能',
   },
 ]
@@ -104,7 +106,6 @@ const filterMenus = (menus = [] as MenuProps['items']) => {
 // 展示在菜单的路由数组
 const menuItems = computed<MenuProps['items']>(() => filterMenus(originItems))
 
-
 // 处理菜单点击
 const handleMenuClick: MenuProps['onClick'] = (e) => {
   const key = e.key as string
@@ -115,8 +116,8 @@ const handleMenuClick: MenuProps['onClick'] = (e) => {
   }
 }
 
-// 用户注销
-const loginout = async () => {
+// 退出登录
+const doLogout = async () => {
   const res = await userLogout()
   if (res.data.code === 0) {
     loginUserStore.setLoginUser({
@@ -128,7 +129,6 @@ const loginout = async () => {
     message.error('退出登录失败，' + res.data.message)
   }
 }
-
 </script>
 
 <style scoped>

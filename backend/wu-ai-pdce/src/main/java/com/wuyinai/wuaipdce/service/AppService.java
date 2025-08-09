@@ -96,4 +96,9 @@ public interface AppService extends IService<App> {
      * 调用门面类方法
      */
     Flux<String> chatToGenCode(Long appId, String message, User loginUser);
+
+    /**
+     * 部署服务
+     */
+    String deployApp(Long appId,User loginUser);
 }
