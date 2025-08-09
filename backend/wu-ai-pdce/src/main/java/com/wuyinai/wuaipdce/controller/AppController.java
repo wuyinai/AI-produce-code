@@ -200,7 +200,6 @@ public class AppController {
         //获取登录的用户信息
         User loginUser = userService.getLoginUser(request);
 //        return appService.chatToGenCode(appId, message, loginUser);
-        //调用服务生成代码
         Flux<String> flux = appService.chatToGenCode(appId, message, loginUser);
         // 将每个数据块（chunk）包装成一个JSON对象，键为"d"，
         // 值为chunk内容，然后构建一个ServerSentEvent对象，用于通过SSE协议发送数据。

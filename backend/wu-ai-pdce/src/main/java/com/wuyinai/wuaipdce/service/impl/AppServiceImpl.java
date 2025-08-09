@@ -23,17 +23,21 @@ import com.wuyinai.wuaipdce.model.dto.app.AppQueryRequest;
 import com.wuyinai.wuaipdce.model.dto.app.AppUpdateRequest;
 import com.wuyinai.wuaipdce.model.entity.App;
 import com.wuyinai.wuaipdce.model.entity.User;
+import com.wuyinai.wuaipdce.model.enums.ChatHistoryMessageTypeEnum;
 import com.wuyinai.wuaipdce.model.enums.CodeGenTypeEnum;
 import com.wuyinai.wuaipdce.model.vo.AppVO;
 import com.wuyinai.wuaipdce.model.vo.UserVO;
 import com.wuyinai.wuaipdce.service.AppService;
+import com.wuyinai.wuaipdce.service.ChatHistoryService;
 import com.wuyinai.wuaipdce.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
 import java.io.File;
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -47,11 +51,14 @@ import java.util.stream.Collectors;
  * @author <a href="https://github.com/wuyinai">程序实习生奈奈</a>
  */
 @Service
-public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppService {
+@Slf4j
+public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppService {
     @Autowired
     private UserService userService;
     @Autowired
     private AiCodeGeneratorFacade aiCodeGeneratorFacade;
+    @Autowired
+    private ChatHistoryService chatHistoryService;
 
     /**
      * 添加上脱敏用户信息
@@ -79,6 +86,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
 
     /**
      * 查询条件封装
+     *
      * @param appQueryRequest
      * @return
      */
@@ -111,6 +119,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
 
     /**
      * 获取AppVO列表
+     *
      * @param appList
      * @return
      */
@@ -135,6 +144,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
 
     /**
      * 添加应用
+     *
      * @param appAddRequest
      * @param request
      * @return
@@ -159,8 +169,10 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
         return app.getId();
     }
+
     /**
      * 更新应用
+     *
      * @param appUpdateRequest
      * @param request
      */
@@ -183,8 +195,10 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         boolean result = this.updateById(app);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
     }
+
     /**
      * 删除应用
+     *
      * @param deleteRequest
      * @param request
      * @return
@@ -202,6 +216,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         }
         return this.removeById(id);
     }
+
     /**
      * 根据 id 获取应用详情
      */
@@ -212,11 +227,12 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR);
         return getAppVO(app);
     }
+
     /**
      * 分页获取当前用户创建的应用列表
      */
     @Override
-    public Page<AppVO> listMyAppVOByPage(AppQueryRequest appQueryRequest,HttpServletRequest request) {
+    public Page<AppVO> listMyAppVOByPage(AppQueryRequest appQueryRequest, HttpServletRequest request) {
         User loginUser = userService.getLoginUser(request);
         // 限制每页最多 20 个
         long pageSize = appQueryRequest.getPageSize();
@@ -232,9 +248,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         appVOPage.setRecords(appVOList);
         return appVOPage;
     }
+
     /**
      * 分页获取精选应用列表
-     *
      */
     @Override
     public Page<AppVO> listSelectedAppVOByPage(AppQueryRequest appQueryRequest) {
@@ -253,6 +269,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         appVOPage.setRecords(appVOList);
         return appVOPage;
     }
+
     /**
      * 管理员删除应用
      */
@@ -264,6 +281,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         ThrowUtils.throwIf(oldApp == null, ErrorCode.NOT_FOUND_ERROR);
         return this.removeById(id);
     }
+
     /**
      * 管理员更新应用
      */
@@ -280,6 +298,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         boolean result = this.updateById(app);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
     }
+
     /**
      * 管理员分页获取应用列表
      */
@@ -295,6 +314,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         appVOPage.setRecords(appVOList);
         return appVOPage;
     }
+
     /**
      * 管理员根据 id 获取应用详情
      */
@@ -309,6 +329,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
 
     /**
      * 调用门面类方法
+     *
      * @param appId
      * @param message
      * @param loginUser
@@ -317,25 +338,53 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
     @Override
     public Flux<String> chatToGenCode(Long appId, String message, User loginUser) {
         // 参数校验
-        ThrowUtils.throwIf(appId == null||appId <= 0, ErrorCode.PARAMS_ERROR, "应用id不能为空");
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用id不能为空");
         ThrowUtils.throwIf(message == null, ErrorCode.PARAMS_ERROR, "用户消息不能为空");
         //查询应用
         App app = this.getById(appId);
         ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
         //验证用户是否有权限访问该应用
-         if(!app.getUserId().equals(loginUser.getId())){
-             throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
-         }
+        if (!app.getUserId().equals(loginUser.getId())) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+        }
         //获取应用的代码类型
         String codeGenType = app.getCodeGenType();
         CodeGenTypeEnum codeGenTypeEnum = CodeGenTypeEnum.getEnumByValue(codeGenType);
-        //调用门面方法调用AI生成代码
-        return aiCodeGeneratorFacade.generateAndSaveCodeStreaming(message, codeGenTypeEnum,appId);
+        //新增：校验代码生成类型
+        if (codeGenTypeEnum == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "应用代码生成类型不支持");
+        }
+        //新增：调用对话历史保存方法
+        chatHistoryService.addChatMessage(appId, message, ChatHistoryMessageTypeEnum.USER.getValue(), loginUser.getId());
+
+        //修改：调用门面方法调用AI生成代码
+        Flux<String> contentFlux = aiCodeGeneratorFacade.generateAndSaveCodeStreaming(message, codeGenTypeEnum, appId);
+
+        //新增：收集AI响应内容并在完成后记录到对话历史（先创建一个流）
+        StringBuilder contentBuilder = new StringBuilder();
+        return contentFlux
+                .map(chunk -> {
+                    contentBuilder.append(chunk);
+                    return chunk;
+                })
+                .doOnComplete(() -> {
+                    // 流式响应完成后，保存AI消息到对话历史
+                    String aiMessage = contentBuilder.toString();
+                    if (StrUtil.isNotBlank(aiMessage)) {
+                        chatHistoryService.addChatMessage(appId, aiMessage, ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
+                    }
+                })
+                .doOnError(error -> {
+                    // 流式响应出错时，保存错误消息到对话历史
+                    String errorMessage = "AI回复失败" + error.getMessage();
+                    chatHistoryService.addChatMessage(appId, errorMessage, ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
+                });
     }
 
 
     /**
      * 应用部署
+     *
      * @param appId
      * @param loginUser
      * @return
@@ -385,5 +434,29 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         return String.format("%s/%s/", AppConstant.CODE_DEPLOY_HOST, deployKey);
     }
 
+    /**
+     * 重写removeById方法，关联删除
+     */
+    @Override
+    public boolean removeById(Serializable id) {
+        //校验参数
+        if (id == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "应用id不能为空");
+        }
+        //转换为Long类型
+        Long appId = Long.valueOf(id.toString());
+        if (appId <= 0) {
+            return false;
+        }
 
+        //先删除关联的历史对话
+        try {
+            chatHistoryService.deleteMessage(appId);
+        } catch (Exception e) {
+            log.error("删除应用关联的历史对话失败：{}", e.getMessage());
+        }
+
+        //删除应用
+        return super.removeById(appId);
+    }
 }

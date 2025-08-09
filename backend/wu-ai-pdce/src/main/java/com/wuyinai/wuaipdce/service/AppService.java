@@ -14,6 +14,7 @@ import com.wuyinai.wuaipdce.model.vo.AppVO;
 import jakarta.servlet.http.HttpServletRequest;
 import reactor.core.publisher.Flux;
 
+import java.io.Serializable;
 import java.util.List;
 
 
@@ -101,4 +102,9 @@ public interface AppService extends IService<App> {
      * 部署服务
      */
     String deployApp(Long appId,User loginUser);
+
+    /**
+     * 重写removeById方法
+     */
+    boolean removeById(Serializable id);
 }
