@@ -94,6 +94,7 @@ public class User implements Serializable {
      * 是否删除
      */
     @Column(value = "isDelete", isLogicDelete = true)
+    //需要自定义是否需要逻辑删除
     private Integer isDelete;
 
 }

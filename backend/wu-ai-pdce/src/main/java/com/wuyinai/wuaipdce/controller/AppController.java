@@ -23,6 +23,9 @@ import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+//Mono：Reactor库中的核心类之一，用于表示包含0个或1个元素的异步序列
+//作用：支持响应式编程，处理单个异步操作的结果
+//使用场景：常用于HTTP请求响应、数据库查询等返回单个结果的异步操作
 
 import java.util.Map;
 
@@ -211,6 +214,7 @@ public class AppController {
                     .data(jsonData)
                     .build();
         }).concatWith(Mono.just(
+                //Mono常用于HTTP请求响应、数据库查询等返回单个结果的异步操作
                 //发送结束事件
                 ServerSentEvent.<String>builder()
                         .event("end")

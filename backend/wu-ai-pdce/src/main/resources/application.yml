@@ -9,7 +9,14 @@ spring:
     url: jdbc:mysql://localhost:3306/wu_ai_pdce_code
     username: root
     password: 15288638209abcd
-
+  # redis
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      password:
+      ttl: 3600
+      # ttl不是连接超时时间而是过期时间
 server:
   port: 8234
   # 路径前缀，任何API加上这个路径才能访问到服务器端
