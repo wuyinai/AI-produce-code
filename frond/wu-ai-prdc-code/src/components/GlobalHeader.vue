@@ -83,6 +83,11 @@ const originItems = [
     title: '应用管理',
   },
   {
+    key:'/admin/chatManage',
+    label: '对话管理',
+    title: '对话管理',
+  },
+  {
     key: 'others',
     label: h('a', { href: 'href="https://github.com/wuyinai', target: '_blank' }, '超级智能'),
     title: '超级智能',
