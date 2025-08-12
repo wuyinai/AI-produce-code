@@ -2,7 +2,7 @@ package com.wuyinai.wuaipdce.ai;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.wuyinai.wuaipdce.ai.tool.FileWriteTool;
+import com.wuyinai.wuaipdce.ai.tools.FileWriteTool;
 import com.wuyinai.wuaipdce.exception.BusinessException;
 import com.wuyinai.wuaipdce.exception.ErrorCode;
 import com.wuyinai.wuaipdce.model.enums.CodeGenTypeEnum;
@@ -32,6 +32,7 @@ public class AiCodeGeneratorServiceFactory {
     private ChatModel chatModel;
 
     //将streamingChatModel改为openAiStreamingChatModel
+
     @Resource
     private StreamingChatModel openAiStreamingChatModel;
 
@@ -81,6 +82,11 @@ public class AiCodeGeneratorServiceFactory {
         return getAiCodeGeneratorServiceWithCache(appId,CodeGenTypeEnum.HTML);
     }
 
+    /**
+     * 根据 appId 获取 AI 服务(带缓存)
+     * @param appId,codeGenType
+     * @return
+     */
     public AiCodeGeneratorService getAiCodeGeneratorServiceWithCache(long appId, CodeGenTypeEnum codeGenType) {
         log.info("从缓存中获取appId：{} 对应的AI服务",appId);
         String cacheKey = buildCacheKey(appId,codeGenType);
@@ -100,17 +106,17 @@ public class AiCodeGeneratorServiceFactory {
                 .chatMemoryStore(redisChatMemoryStore)
                 .maxMessages(20)// 最大消息数
                 .build();
-        chatHistoryService.loadChatHistoryToMemory(appId,chatMemory,20);
+        chatHistoryService.loadChatHistoryToMemory(appId,chatMemory,20);//从数据库中获取对话，并保存到缓存中
         // 根据代码生成类型选择不同的模型配置
         return switch(codeGenType){
             case VUE_PROJECT -> AiServices.builder(AiCodeGeneratorService.class)
-                    .streamingChatModel(reasoningStreamingChatModel)
-                    .chatMemoryProvider(memoryId -> chatMemory)
-                    .tools(new FileWriteTool())
+                    .streamingChatModel(reasoningStreamingChatModel)//使用的模型
+                    .chatMemoryProvider(memoryId -> chatMemory)//因为使用MomeryId，所以这里需要使用Provider
+                    .tools(new FileWriteTool())//需要使用工具
                     .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(
                             toolExecutionRequest,"Error: there is no tool called" + toolExecutionRequest
                                     .name()
-                    ))
+                    ))//工具如果不存在时，返回错误信息，防止AI幻觉。
                     .build();
 
             case HTML,MULTI_FILE -> AiServices.builder(AiCodeGeneratorService.class)

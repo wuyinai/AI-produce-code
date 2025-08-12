@@ -4,6 +4,7 @@ import com.wuyinai.wuaipdce.ai.model.HtmlCodeResult;
 import com.wuyinai.wuaipdce.ai.model.MultiFileCodeResult;
 import dev.langchain4j.service.MemoryId;
 import dev.langchain4j.service.SystemMessage;
+import dev.langchain4j.service.TokenStream;
 import dev.langchain4j.service.UserMessage;
 import reactor.core.publisher.Flux;
 
@@ -51,7 +52,7 @@ public interface AiCodeGeneratorService {
      * @return 生成过程的流逝相应
      */
     @SystemMessage(fromResource = "prompt/code-vue-project-prompt.txt")
-    Flux<String> generateVueCodeStreaming(@MemoryId long memoryId, @UserMessage String userMessage);
+    TokenStream generateVueCodeStreaming(@MemoryId long memoryId, @UserMessage String userMessage);
 
 
 

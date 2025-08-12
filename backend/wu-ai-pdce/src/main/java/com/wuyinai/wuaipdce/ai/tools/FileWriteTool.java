@@ -1,4 +1,4 @@
-package com.wuyinai.wuaipdce.ai.tool;
+package com.wuyinai.wuaipdce.ai.tools;
 
 import com.wuyinai.wuaipdce.constant.AppConstant;
 import dev.langchain4j.agent.tool.P;

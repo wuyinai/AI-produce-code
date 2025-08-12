@@ -1,4 +1,4 @@
-package com.wuyinai.wuaipdce.parser;
+package com.wuyinai.wuaipdce.core.parser;
 
 /**
  * 代码解析器策略接口

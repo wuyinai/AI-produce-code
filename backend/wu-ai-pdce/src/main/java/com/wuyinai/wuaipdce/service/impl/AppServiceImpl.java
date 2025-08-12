@@ -13,6 +13,8 @@ import com.wuyinai.wuaipdce.common.DeleteRequest;
 import com.wuyinai.wuaipdce.constant.AppConstant;
 import com.wuyinai.wuaipdce.constant.UserConstant;
 import com.wuyinai.wuaipdce.core.AiCodeGeneratorFacade;
+import com.wuyinai.wuaipdce.core.builder.VueProjectBuilder;
+import com.wuyinai.wuaipdce.core.handler.StreamHandlerExecutor;
 import com.wuyinai.wuaipdce.exception.BusinessException;
 import com.wuyinai.wuaipdce.exception.ErrorCode;
 import com.wuyinai.wuaipdce.exception.ThrowUtils;
@@ -30,6 +32,7 @@ import com.wuyinai.wuaipdce.model.vo.UserVO;
 import com.wuyinai.wuaipdce.service.AppService;
 import com.wuyinai.wuaipdce.service.ChatHistoryService;
 import com.wuyinai.wuaipdce.service.UserService;
+import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,13 +56,17 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppService {
-    @Autowired
+    @Resource
     private UserService userService;
-    @Autowired
+    @Resource
     private AiCodeGeneratorFacade aiCodeGeneratorFacade;
-    @Autowired
+    @Resource
     private ChatHistoryService chatHistoryService;
+    @Resource
+    private StreamHandlerExecutor streamHandlerExecutor;
 
+    @Resource
+    private VueProjectBuilder vueProjectBuilder;
     /**
      * 添加上脱敏用户信息
      *
@@ -163,7 +170,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 将应用程序名称设置为 initPrompt 的前12个字符（如果 initPrompt 长度不足12个字符，则取整个字符串）。
         app.setAppName(initPrompt.substring(0, Math.min(initPrompt.length(), 12)));
         // 暂时设置为多文件生成
-        app.setCodeGenType(CodeGenTypeEnum.MULTI_FILE.getValue());
+        app.setCodeGenType(CodeGenTypeEnum.VUE_PROJECT.getValue());
         // 插入数据库
         boolean result = this.save(app);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
@@ -360,25 +367,26 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         //修改：调用门面方法调用AI生成代码
         Flux<String> contentFlux = aiCodeGeneratorFacade.generateAndSaveCodeStreaming(message, codeGenTypeEnum, appId);
 
-        //新增：收集AI响应内容并在完成后记录到对话历史（先创建一个流）
-        StringBuilder contentBuilder = new StringBuilder();
-        return contentFlux
-                .map(chunk -> {
-                    contentBuilder.append(chunk);
-                    return chunk;
-                })
-                .doOnComplete(() -> {
-                    // 流式响应完成后，保存AI消息到对话历史
-                    String aiMessage = contentBuilder.toString();
-                    if (StrUtil.isNotBlank(aiMessage)) {
-                        chatHistoryService.addChatMessage(appId, aiMessage, ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
-                    }
-                })
-                .doOnError(error -> {
-                    // 流式响应出错时，保存错误消息到对话历史
-                    String errorMessage = "AI回复失败" + error.getMessage();
-                    chatHistoryService.addChatMessage(appId, errorMessage, ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
-                });
+//        //新增：收集AI响应内容并在完成后记录到对话历史（先创建一个流）
+//        StringBuilder contentBuilder = new StringBuilder();
+//        return contentFlux
+//                .map(chunk -> {
+//                    contentBuilder.append(chunk);
+//                    return chunk;
+//                })
+//                .doOnComplete(() -> {
+//                    // 流式响应完成后，保存AI消息到对话历史
+//                    String aiMessage = contentBuilder.toString();
+//                    if (StrUtil.isNotBlank(aiMessage)) {
+//                        chatHistoryService.addChatMessage(appId, aiMessage, ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
+//                    }
+//                })
+//                .doOnError(error -> {
+//                    // 流式响应出错时，保存错误消息到对话历史
+//                    String errorMessage = "AI回复失败" + error.getMessage();
+//                    chatHistoryService.addChatMessage(appId, errorMessage, ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
+//                });
+        return streamHandlerExecutor.doExecute(contentFlux, chatHistoryService, appId, loginUser, codeGenTypeEnum);// 使用流处理器执行器执行流式响应
     }
 
 
@@ -416,21 +424,34 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         if (!sourceDir.exists() || !sourceDir.isDirectory()) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "应用代码不存在，请先生成代码");
         }
-        // 7. 复制文件到部署目录
+        // 7. Vue 项目特殊处理：执行构建
+        CodeGenTypeEnum codeGenTypeEnum = CodeGenTypeEnum.getEnumByValue(codeGenType);
+        if (codeGenTypeEnum == CodeGenTypeEnum.VUE_PROJECT) {
+            // Vue 项目需要构建
+            boolean buildSuccess = vueProjectBuilder.buildProject(sourceDirPath);
+            ThrowUtils.throwIf(!buildSuccess, ErrorCode.SYSTEM_ERROR, "Vue 项目构建失败，请检查代码和依赖");
+            // 检查 dist 目录是否存在
+            File distDir = new File(sourceDirPath, "dist");
+            ThrowUtils.throwIf(!distDir.exists(), ErrorCode.SYSTEM_ERROR, "Vue 项目构建完成但未生成 dist 目录");
+            // 将 dist 目录作为部署源
+            sourceDir = distDir;
+            log.info("Vue 项目构建成功，将部署 dist 目录: {}", distDir.getAbsolutePath());
+        }
+        // 8. 复制文件到部署目录
         String deployDirPath = AppConstant.CODE_DEPLOY_ROOT_DIR + File.separator + deployKey;
         try {
             FileUtil.copyContent(sourceDir, new File(deployDirPath), true);
         } catch (Exception e) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "部署失败：" + e.getMessage());
         }
-        // 8. 更新应用的 deployKey 和部署时间
+        // 9. 更新应用的 deployKey 和部署时间
         App updateApp = new App();
         updateApp.setId(appId);
         updateApp.setDeployKey(deployKey);
         updateApp.setDeployedTime(LocalDateTime.now());
         boolean updateResult = this.updateById(updateApp);
         ThrowUtils.throwIf(!updateResult, ErrorCode.OPERATION_ERROR, "更新应用部署信息失败");
-        // 9. 返回可访问的 URL
+        // 10. 返回可访问的 URL
         return String.format("%s/%s/", AppConstant.CODE_DEPLOY_HOST, deployKey);
     }
 

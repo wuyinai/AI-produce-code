@@ -1,4 +1,4 @@
-package com.wuyinai.wuaipdce.saver;
+package com.wuyinai.wuaipdce.core.saver;
 
 import com.wuyinai.wuaipdce.ai.model.HtmlCodeResult;
 import com.wuyinai.wuaipdce.ai.model.MultiFileCodeResult;

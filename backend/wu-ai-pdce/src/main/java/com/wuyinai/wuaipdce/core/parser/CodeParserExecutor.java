@@ -1,4 +1,4 @@
-package com.wuyinai.wuaipdce.parser;
+package com.wuyinai.wuaipdce.core.parser;
 
 import com.wuyinai.wuaipdce.exception.BusinessException;
 import com.wuyinai.wuaipdce.exception.ErrorCode;

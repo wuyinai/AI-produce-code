@@ -1,14 +1,21 @@
 package com.wuyinai.wuaipdce.core;
 
+import cn.hutool.json.JSONUtil;
 import com.wuyinai.wuaipdce.ai.AiCodeGeneratorService;
 import com.wuyinai.wuaipdce.ai.AiCodeGeneratorServiceFactory;
 import com.wuyinai.wuaipdce.ai.model.HtmlCodeResult;
 import com.wuyinai.wuaipdce.ai.model.MultiFileCodeResult;
+import com.wuyinai.wuaipdce.ai.model.message.AiResponseMessage;
+import com.wuyinai.wuaipdce.ai.model.message.ToolExecutedMessage;
+import com.wuyinai.wuaipdce.ai.model.message.ToolRequestMessage;
 import com.wuyinai.wuaipdce.exception.BusinessException;
 import com.wuyinai.wuaipdce.exception.ErrorCode;
 import com.wuyinai.wuaipdce.model.enums.CodeGenTypeEnum;
-import com.wuyinai.wuaipdce.parser.CodeParserExecutor;
-import com.wuyinai.wuaipdce.saver.CodeFileSaverExecutor;
+import com.wuyinai.wuaipdce.core.parser.CodeParserExecutor;
+import com.wuyinai.wuaipdce.core.saver.CodeFileSaverExecutor;
+import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.service.TokenStream;
+import dev.langchain4j.service.tool.ToolExecution;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,6 +33,49 @@ public class AiCodeGeneratorFacade {
 
     @Resource
     private AiCodeGeneratorServiceFactory aiCodeGeneratorServiceFactory;
+
+
+    /**
+     * TokenStream与Flux适配方法
+     * 适配方法需要监听tokenStream的AI响应，工具调用，工具调用完成等事件。将不同事件封装为不同的消息
+     * @param tokenStream TokenStream对象
+     * @return Flux对象
+     * 为你生成代码：
+     * 选择工具
+     * 工具调用
+     * ....
+     * 生成代码结束。
+     *
+     *
+     */
+
+
+    private Flux<String> processTokenCodeStream(TokenStream tokenStream) {
+        return Flux.create(sink -> {
+            tokenStream.onPartialResponse((String partialResponse)->{//监听AI响应事件
+                AiResponseMessage aiResponseMessage = new AiResponseMessage(partialResponse);
+                //将AI响应封装为AiResponseMessage对象
+                sink.next(JSONUtil.toJsonStr(aiResponseMessage));
+                //将消息对象转为JSON字符串并通过sink发射出去
+            })
+                    .onPartialToolExecutionRequest((index,toolExecutionRequest)->{
+                        ToolRequestMessage toolRequestMessage = new ToolRequestMessage(toolExecutionRequest);
+                        sink.next(JSONUtil.toJsonStr(toolRequestMessage));
+                    })//监听工具调用事件
+                    .onToolExecuted((ToolExecution toolExecution)->{
+                        ToolExecutedMessage toolExecutedMessage = new ToolExecutedMessage(toolExecution);
+                        sink.next(JSONUtil.toJsonStr(toolExecutedMessage));
+                    })//监听工具调用完成事件
+                    .onCompleteResponse((ChatResponse chatResponse)->{
+                        sink.complete();
+                    })//注册完整响应事件监听器，当AI完成整个响应时触发
+                    .onError((Throwable error)->{
+                        error.printStackTrace();
+                        sink.error(error);
+                    })
+                    .start();
+        });
+    }
 
 
     /**
@@ -79,8 +129,8 @@ public class AiCodeGeneratorFacade {
                 yield processCodeStream(codeStream, CodeGenTypeEnum.MULTI_FILE, appId);
             }
             case VUE_PROJECT -> {
-                Flux<String> codeStream = aiCodeGeneratorService.generateVueCodeStreaming(appId,userMessage);
-                yield processCodeStream(codeStream, CodeGenTypeEnum.MULTI_FILE, appId);
+                TokenStream codeStream = aiCodeGeneratorService.generateVueCodeStreaming(appId,userMessage);
+                yield processTokenCodeStream(codeStream);
             }
             default -> {
                 String errorMessage = "不支持的生成类型：" + codeGenTypeEnum.getValue();
