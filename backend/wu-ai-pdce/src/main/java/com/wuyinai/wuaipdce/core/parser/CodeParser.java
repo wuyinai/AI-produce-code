@@ -3,7 +3,7 @@ package com.wuyinai.wuaipdce.core.parser;
 /**
  * 代码解析器策略接口
  * 
- * @author yupi
+ * @author wu-yi-nai
  */
 public interface CodeParser<T> {
 

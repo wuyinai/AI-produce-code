@@ -10,7 +10,7 @@
 // * 代码解析器
 // * 提供静态方法解析不同类型的代码内容
 // *
-// * @author yupi
+// * @author wu-yi-nai
 // */
 //public class CodeParser {
 //

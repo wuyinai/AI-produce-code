@@ -9,7 +9,7 @@ import com.wuyinai.wuaipdce.model.enums.CodeGenTypeEnum;
 /**
  * HTML代码文件保存器
  *
- * @author yupi
+ * @author wu-yi-nai
  */
 public class HtmlCodeFileSaverTemplate extends CodeFileSaverTemplate<HtmlCodeResult> {
 

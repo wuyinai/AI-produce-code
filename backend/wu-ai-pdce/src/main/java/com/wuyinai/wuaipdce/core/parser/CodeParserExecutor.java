@@ -8,7 +8,7 @@ import com.wuyinai.wuaipdce.model.enums.CodeGenTypeEnum;
  * 代码解析执行器
  * 根据代码生成类型执行相应的解析逻辑
  *
- * @author yupi
+ * @author wu-yi-nai
  */
 public class CodeParserExecutor {
 

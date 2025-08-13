@@ -107,4 +107,11 @@ public interface AppService extends IService<App> {
      * 重写removeById方法
      */
     boolean removeById(Serializable id);
+
+    /**
+     * 异步生成截图
+     * @param appId
+     * @param appUrl
+     */
+    void generateAppScreenshotAsync(Long appId, String appUrl);
 }
