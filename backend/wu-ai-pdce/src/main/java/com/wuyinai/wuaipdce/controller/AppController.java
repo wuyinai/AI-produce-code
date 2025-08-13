@@ -6,6 +6,7 @@ import com.wuyinai.wuaipdce.annotation.AuthCheck;
 import com.wuyinai.wuaipdce.common.BaseResponse;
 import com.wuyinai.wuaipdce.common.DeleteRequest;
 import com.wuyinai.wuaipdce.common.ResultUtils;
+import com.wuyinai.wuaipdce.constant.AppConstant;
 import com.wuyinai.wuaipdce.constant.UserConstant;
 import com.wuyinai.wuaipdce.exception.BusinessException;
 import com.wuyinai.wuaipdce.exception.ErrorCode;
@@ -15,9 +16,11 @@ import com.wuyinai.wuaipdce.model.entity.App;
 import com.wuyinai.wuaipdce.model.entity.User;
 import com.wuyinai.wuaipdce.model.vo.AppVO;
 import com.wuyinai.wuaipdce.service.AppService;
+import com.wuyinai.wuaipdce.service.ProjectDownloadService;
 import com.wuyinai.wuaipdce.service.UserService;
+import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
@@ -27,6 +30,7 @@ import reactor.core.publisher.Mono;
 //作用：支持响应式编程，处理单个异步操作的结果
 //使用场景：常用于HTTP请求响应、数据库查询等返回单个结果的异步操作
 
+import java.io.File;
 import java.util.Map;
 
 
@@ -39,11 +43,14 @@ import java.util.Map;
 @RequestMapping("/app")
 public class AppController {
 
-    @Autowired
+    @Resource
     private AppService appService;
 
-    @Autowired
+    @Resource
     private UserService userService;
+
+    @Resource
+    private ProjectDownloadService projectDownloadService;
     /**
      * 创建应用
      *
@@ -240,5 +247,32 @@ public class AppController {
         String deployResult = appService.deployApp(appId, loginUser);
         return ResultUtils.success(deployResult);
 
+    }
+
+    @GetMapping("/download/{appId}")
+    public void downloadProject(@PathVariable Long appId, HttpServletResponse response, HttpServletRequest request) {
+        //基础校验
+        ThrowUtils.throwIf(appId == null||appId <= 0, ErrorCode.PARAMS_ERROR, "应用id不能为空");
+        //查询应用信息
+        App app = appService.getById(appId);
+        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
+
+        //权限管理，只有应用创建者可以下载代码
+        User loginUser = userService.getLoginUser(request);
+        if (!app.getUserId().equals(loginUser.getId())) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限");
+        }
+        //构建应用代码目录路径（生成目录，非部署目录）
+        String codeGenType = app.getCodeGenType();
+        String sourceDirName = codeGenType + "_" + appId;
+        String sourceDirPath = AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + sourceDirName;
+        //检查代码目录是否存在
+        File sourceDir = new File(sourceDirPath);
+        ThrowUtils.throwIf(!sourceDir.exists()||!sourceDir.isDirectory(), ErrorCode.NOT_FOUND_ERROR, "应用代码不存在");
+
+        //生成下载文件名
+        String downloadFileName = String.valueOf(appId);
+        //通用下载服务
+        projectDownloadService.downloadProjectAsZip(sourceDirPath, downloadFileName, response);
     }
 }
