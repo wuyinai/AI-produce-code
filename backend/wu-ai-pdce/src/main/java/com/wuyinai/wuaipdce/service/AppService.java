@@ -47,7 +47,7 @@ public interface AppService extends IService<App> {
     /**
      * 增加应用
      */
-    Long addApp(AppAddRequest appAddRequest, HttpServletRequest request);
+    Long addApp(AppAddRequest appAddRequest, User loginUser);
 
     /**
      * 更新应用

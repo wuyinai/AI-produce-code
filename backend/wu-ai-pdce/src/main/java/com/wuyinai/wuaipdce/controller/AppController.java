@@ -61,7 +61,8 @@ public class AppController {
     @PostMapping("/add")
     public BaseResponse<Long> addApp(@RequestBody AppAddRequest appAddRequest, HttpServletRequest request) {
         ThrowUtils.throwIf(appAddRequest == null, ErrorCode.PARAMS_ERROR);
-        Long appId = appService.addApp(appAddRequest, request);
+        User loginUser = userService.getLoginUser(request);
+        Long appId = appService.addApp(appAddRequest, loginUser);
         return ResultUtils.success(appId);
     }
 

@@ -9,6 +9,7 @@ import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 
+import com.wuyinai.wuaipdce.ai.AiCodeGenTypeRoutingService;
 import com.wuyinai.wuaipdce.common.DeleteRequest;
 import com.wuyinai.wuaipdce.constant.AppConstant;
 import com.wuyinai.wuaipdce.constant.UserConstant;
@@ -71,6 +72,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     @Resource
     private ScreenshotService screenshotService;
 
+    @Resource
+    private AiCodeGenTypeRoutingService aiCodeGenTypeRoutingService;
     /**
      * 添加上脱敏用户信息
      *
@@ -157,23 +160,23 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
      * 添加应用
      *
      * @param appAddRequest
-     * @param request
+     * @param loginUser
      * @return
      */
     @Override
-    public Long addApp(AppAddRequest appAddRequest, HttpServletRequest request) {
+    public Long addApp(AppAddRequest appAddRequest, User loginUser) {
         // 参数校验
         String initPrompt = appAddRequest.getInitPrompt();
         ThrowUtils.throwIf(StrUtil.isBlank(initPrompt), ErrorCode.PARAMS_ERROR, "初始化 prompt 不能为空");
-        // 获取当前登录用户
-        User loginUser = userService.getLoginUser(request);
         // 构造入库对象
         App app = new App();
         BeanUtil.copyProperties(appAddRequest, app);
         app.setUserId(loginUser.getId());
         // 将应用程序名称设置为 initPrompt 的前12个字符（如果 initPrompt 长度不足12个字符，则取整个字符串）。
         app.setAppName(initPrompt.substring(0, Math.min(initPrompt.length(), 12)));
-        // 暂时设置为多文件生成
+        // 使用AI智能选择代码生成类型
+
+        CodeGenTypeEnum codeGenTypeEnum = aiCodeGenTypeRoutingService.routeCodeGenType(initPrompt);
         app.setCodeGenType(CodeGenTypeEnum.VUE_PROJECT.getValue());
         // 插入数据库
         boolean result = this.save(app);
