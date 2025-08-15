@@ -1,4 +1,3 @@
-// 请求参数类型定义
 declare namespace API {
   type AppAddRequest = {
     initPrompt?: string
@@ -147,6 +146,10 @@ declare namespace API {
 
   type DeleteRequest = {
     id?: number
+  }
+
+  type downloadProjectParams = {
+    appId: number
   }
 
   type getAppVOByIdByAdminParams = {
