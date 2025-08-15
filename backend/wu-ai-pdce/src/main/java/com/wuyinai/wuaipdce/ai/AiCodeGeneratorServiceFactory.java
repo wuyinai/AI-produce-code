@@ -2,7 +2,7 @@ package com.wuyinai.wuaipdce.ai;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.wuyinai.wuaipdce.ai.tools.FileWriteTool;
+import com.wuyinai.wuaipdce.ai.tools.ToolManager;
 import com.wuyinai.wuaipdce.exception.BusinessException;
 import com.wuyinai.wuaipdce.exception.ErrorCode;
 import com.wuyinai.wuaipdce.model.enums.CodeGenTypeEnum;
@@ -15,7 +15,6 @@ import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.service.AiServices;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -42,9 +41,11 @@ public class AiCodeGeneratorServiceFactory {
     @Resource
     private RedisChatMemoryStore redisChatMemoryStore;
 
-    @Autowired
+    @Resource
     private ChatHistoryService chatHistoryService;
 
+    @Resource
+    private ToolManager toolManager;
 
     /**
      * 一般输出创建 AI 服务不能和 流式输出创建 AI 服务使用同一个 ChatModel
@@ -112,7 +113,7 @@ public class AiCodeGeneratorServiceFactory {
             case VUE_PROJECT -> AiServices.builder(AiCodeGeneratorService.class)
                     .streamingChatModel(reasoningStreamingChatModel)//使用的模型
                     .chatMemoryProvider(memoryId -> chatMemory)//因为使用MomeryId，所以这里需要使用Provider
-                    .tools(new FileWriteTool())//需要使用工具
+                    .tools(toolManager.getAllTools())//需要使用工具
                     .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(
                             toolExecutionRequest,"Error: there is no tool called" + toolExecutionRequest
                                     .name()
@@ -148,25 +149,7 @@ public class AiCodeGeneratorServiceFactory {
 
 
 
-/**
- * 方案一：根据 id 构建独立的对话记忆，内置隔离机制
- */
-//    private final RedisChatMemoryStore redisChatMemoryStore;
-//
-//    @Bean
-//    public AiCodeGeneratorService aiCodeGeneratorService() {
-//        return AiServices.builder(AiCodeGeneratorService.class)
-//                .chatModel(chatModel)
-//                .streamingChatModel(streamingChatModel)
-//                // 根据 id 构建独立的对话记忆
-//                .chatMemoryProvider(memoryId -> MessageWindowChatMemory
-//                        .builder()
-//                        .id(memoryId)
-//                        .chatMemoryStore(redisChatMemoryStore)
-//                        .maxMessages(20)
-//                        .build())
-//                .build();
-//    }
+
 
 }
 
