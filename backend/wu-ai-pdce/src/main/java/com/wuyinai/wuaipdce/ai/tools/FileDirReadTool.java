@@ -8,6 +8,7 @@ import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.agent.tool.ToolMemoryId;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -20,6 +21,7 @@ import java.util.Set;
  * 使用 Hutool 简化文件操作
  */
 @Slf4j
+@Component
 public class FileDirReadTool extends BaseTool{
 
     /**
