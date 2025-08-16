@@ -10,6 +10,7 @@ import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 
 import com.wuyinai.wuaipdce.ai.AiCodeGenTypeRoutingService;
+import com.wuyinai.wuaipdce.ai.AiCodeGenTypeRoutingServiceFactory;
 import com.wuyinai.wuaipdce.common.DeleteRequest;
 import com.wuyinai.wuaipdce.constant.AppConstant;
 import com.wuyinai.wuaipdce.constant.UserConstant;
@@ -73,7 +74,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     private ScreenshotService screenshotService;
 
     @Resource
-    private AiCodeGenTypeRoutingService aiCodeGenTypeRoutingService;
+    private AiCodeGenTypeRoutingServiceFactory aiCodeGenTypeRoutingServiceFactory;
     /**
      * 添加上脱敏用户信息
      *
@@ -175,8 +176,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 将应用程序名称设置为 initPrompt 的前12个字符（如果 initPrompt 长度不足12个字符，则取整个字符串）。
         app.setAppName(initPrompt.substring(0, Math.min(initPrompt.length(), 12)));
         // 使用AI智能选择代码生成类型
-
-        CodeGenTypeEnum codeGenTypeEnum = aiCodeGenTypeRoutingService.routeCodeGenType(initPrompt);
+        AiCodeGenTypeRoutingService routingService = aiCodeGenTypeRoutingServiceFactory.aiCodeGenTypeRoutingServicePrototype();
+        CodeGenTypeEnum codeGenTypeEnum = routingService.routeCodeGenType(initPrompt);
         app.setCodeGenType(codeGenTypeEnum.getValue());
         // 插入数据库
         boolean result = this.save(app);
