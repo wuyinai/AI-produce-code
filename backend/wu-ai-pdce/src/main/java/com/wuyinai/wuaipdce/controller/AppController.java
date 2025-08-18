@@ -3,6 +3,7 @@ package com.wuyinai.wuaipdce.controller;
 import cn.hutool.json.JSONUtil;
 import com.mybatisflex.core.paginate.Page;
 import com.wuyinai.wuaipdce.annotation.AuthCheck;
+import com.wuyinai.wuaipdce.annotation.RateLimit;
 import com.wuyinai.wuaipdce.common.BaseResponse;
 import com.wuyinai.wuaipdce.common.DeleteRequest;
 import com.wuyinai.wuaipdce.common.ResultUtils;
@@ -14,6 +15,7 @@ import com.wuyinai.wuaipdce.exception.ThrowUtils;
 import com.wuyinai.wuaipdce.model.dto.app.*;
 import com.wuyinai.wuaipdce.model.entity.App;
 import com.wuyinai.wuaipdce.model.entity.User;
+import com.wuyinai.wuaipdce.model.enums.RateLimitType;
 import com.wuyinai.wuaipdce.model.vo.AppVO;
 import com.wuyinai.wuaipdce.service.AppService;
 import com.wuyinai.wuaipdce.service.ProjectDownloadService;
@@ -210,6 +212,7 @@ public class AppController {
      * 第三步：让前端准确的判定流的输出完毕
      */
     @GetMapping(value = "/chat/gen/code" ,produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @RateLimit(limitType = RateLimitType.USER, rate = 5, rateInterval = 60, message = "AI 对话请求过于频繁，请稍后再试")
     //值为 "text/event-stream" 表示使用 Server-Sent Events (SSE) 协议进行通信
     public Flux<ServerSentEvent<String>> chatToGenCode(@RequestParam Long appId, @RequestParam String message, HttpServletRequest request) {
         ThrowUtils.throwIf(appId == null||appId <= 0, ErrorCode.PARAMS_ERROR, "应用id不能为空");

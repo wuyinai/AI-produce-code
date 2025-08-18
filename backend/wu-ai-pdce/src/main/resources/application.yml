@@ -22,6 +22,7 @@ spring:
       password:
       ttl: 3600
       # ttl不是连接超时时间而是过期时间
+      database: 0
 server:
   port: 8234
   # 路径前缀，任何API加上这个路径才能访问到服务器端
