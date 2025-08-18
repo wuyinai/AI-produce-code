@@ -1,5 +1,6 @@
 package com.wuyinai.wuaipdce.controller;
 
+import cn.hutool.core.util.StrUtil;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.wuyinai.wuaipdce.annotation.AuthCheck;
@@ -69,6 +70,12 @@ public class ChatHistoryController {
         long pageNum = chatHistoryQueryRequest.getPageNum();
         long pageSize = chatHistoryQueryRequest.getPageSize();
         // 查询数据
+        if (StrUtil.isEmpty(chatHistoryQueryRequest.getMessage())){
+            chatHistoryQueryRequest.setMessage(null);
+        }
+        if (StrUtil.isEmpty(chatHistoryQueryRequest.getMessageType())){
+            chatHistoryQueryRequest.setMessageType(null);
+        }
         QueryWrapper queryWrapper = chatHistoryService.getQueryWrapper(chatHistoryQueryRequest);
         Page<ChatHistory> result = chatHistoryService.page(Page.of(pageNum, pageSize), queryWrapper);
         return ResultUtils.success(result);

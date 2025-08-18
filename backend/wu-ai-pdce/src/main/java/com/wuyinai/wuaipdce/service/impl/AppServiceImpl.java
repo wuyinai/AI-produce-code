@@ -44,10 +44,7 @@ import reactor.core.publisher.Flux;
 import java.io.File;
 import java.io.Serializable;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -321,6 +318,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     public Page<AppVO> listAppVOByPageAdmin(AppQueryRequest appQueryRequest) {
         long pageNum = appQueryRequest.getPageNum();
         long pageSize = appQueryRequest.getPageSize();
+        if (StrUtil.isEmpty(appQueryRequest.getCodeGenType())) {
+            appQueryRequest.setCodeGenType(null);
+        }
         QueryWrapper queryWrapper = this.getQueryWrapper(appQueryRequest);
         Page<App> appPage = this.page(Page.of(pageNum, pageSize), queryWrapper);
         // 数据封装

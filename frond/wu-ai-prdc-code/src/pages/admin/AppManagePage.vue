@@ -26,7 +26,10 @@
         </a-select>
       </a-form-item>
       <a-form-item>
-        <a-button type="primary" html-type="submit">搜索</a-button>
+        <a-space>
+          <a-button type="primary" html-type="submit">搜索</a-button>
+          <a-button type="primary" html-type="submit" @click="doClear">清空</a-button>
+        </a-space>
       </a-form-item>
     </a-form>
     <a-divider />
@@ -70,7 +73,7 @@
         </template>
         <template v-else-if="column.key === 'action'">
           <a-space>
-            <a-button type="primary" size="small" @click="editApp(record)"> 编辑 </a-button>
+            <a-button type="primary" size="small" @click="editApp(record)"> 编辑</a-button>
             <a-button
               type="default"
               size="small"
@@ -211,6 +214,12 @@ const doSearch = () => {
   // 重置页码
   searchParams.pageNum = 1
   fetchData()
+}
+// 清空
+const doClear = () => {
+  searchParams.appName = ''
+  searchParams.codeGenType = ''
+  doSearch()
 }
 
 // 编辑应用

@@ -22,9 +22,10 @@
       <a-form-item label="用户ID">
         <a-input v-model:value="searchParams.userId" placeholder="输入用户ID" />
       </a-form-item>
-      <a-form-item>
+      <a-space>
         <a-button type="primary" html-type="submit">搜索</a-button>
-      </a-form-item>
+        <a-button type="primary" html-type="submit" @click="doClear">清空</a-button>
+      </a-space>
     </a-form>
     <a-divider />
 
@@ -171,7 +172,12 @@ const doSearch = () => {
   searchParams.pageNum = 1
   fetchData()
 }
-
+// 清空
+const doClear = () => {
+  searchParams.message = ''
+  searchParams.messageType = ''
+  doSearch()
+}
 // 查看应用对话
 const viewAppChat = (appId: number | undefined) => {
   if (appId) {
