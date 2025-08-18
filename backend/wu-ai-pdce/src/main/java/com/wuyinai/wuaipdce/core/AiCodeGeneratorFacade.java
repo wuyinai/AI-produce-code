@@ -8,6 +8,8 @@ import com.wuyinai.wuaipdce.ai.model.MultiFileCodeResult;
 import com.wuyinai.wuaipdce.ai.model.message.AiResponseMessage;
 import com.wuyinai.wuaipdce.ai.model.message.ToolExecutedMessage;
 import com.wuyinai.wuaipdce.ai.model.message.ToolRequestMessage;
+import com.wuyinai.wuaipdce.constant.AppConstant;
+import com.wuyinai.wuaipdce.core.builder.VueProjectBuilder;
 import com.wuyinai.wuaipdce.exception.BusinessException;
 import com.wuyinai.wuaipdce.exception.ErrorCode;
 import com.wuyinai.wuaipdce.model.enums.CodeGenTypeEnum;
@@ -34,6 +36,8 @@ public class AiCodeGeneratorFacade {
     @Resource
     private AiCodeGeneratorServiceFactory aiCodeGeneratorServiceFactory;
 
+    @Resource
+    private VueProjectBuilder vueProjectBuilder;
 
     /**
      * TokenStream与Flux适配方法
@@ -50,7 +54,7 @@ public class AiCodeGeneratorFacade {
      */
 
 
-    private Flux<String> processTokenCodeStream(TokenStream tokenStream) {
+    private Flux<String> processTokenCodeStream(TokenStream tokenStream,Long appId) {
         return Flux.create(sink -> {
             tokenStream.onPartialResponse((String partialResponse)->{//监听AI响应事件
                 AiResponseMessage aiResponseMessage = new AiResponseMessage(partialResponse);
@@ -67,6 +71,9 @@ public class AiCodeGeneratorFacade {
                         sink.next(JSONUtil.toJsonStr(toolExecutedMessage));
                     })//监听工具调用完成事件
                     .onCompleteResponse((ChatResponse chatResponse)->{
+                        // 执行Vue项目构建（同步执行，确保预览实时项目已就绪）
+                        String projectPath = AppConstant.CODE_OUTPUT_ROOT_DIR + "/vue_project_" + appId;
+                        vueProjectBuilder.buildProject(projectPath);
                         sink.complete();
                     })//注册完整响应事件监听器，当AI完成整个响应时触发
                     .onError((Throwable error)->{
@@ -130,7 +137,7 @@ public class AiCodeGeneratorFacade {
             }
             case VUE_PROJECT -> {
                 TokenStream codeStream = aiCodeGeneratorService.generateVueCodeStreaming(appId,userMessage);
-                yield processTokenCodeStream(codeStream);
+                yield processTokenCodeStream(codeStream,appId);
             }
             default -> {
                 String errorMessage = "不支持的生成类型：" + codeGenTypeEnum.getValue();
