@@ -20,7 +20,7 @@ public class ServeDeployService {
         try {
             if (serveProcess == null || !serveProcess.isAlive()) {
                 ProcessBuilder pb = new ProcessBuilder(
-                    "E:\\new\\nvm\\v20.19.4\\node.exe", "serve", CODE_BASE_DIR, "-p", String.valueOf(SERVE_PORT)
+                    "npx", "serve", CODE_BASE_DIR, "-p", String.valueOf(SERVE_PORT)
                 );
                 pb.redirectErrorStream(true);
                 serveProcess = pb.start();

@@ -1,10 +1,10 @@
 # 数据库初始化
 
 -- 创建库
-create database if not exists wu_ai_pdce_code;
+create database if not exists wuyinai_nocode;
 
 -- 切换库
-use wu_ai_pdce_code;
+use wuyinai_nocode;
 
 -- 用户表
 -- 用户表

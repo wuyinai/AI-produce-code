@@ -9,6 +9,7 @@ import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 
+import com.wuyinai.wuaipdce.ai.AiCodeGenTitleServiceFactory;
 import com.wuyinai.wuaipdce.ai.AiCodeGenTypeRoutingService;
 import com.wuyinai.wuaipdce.ai.AiCodeGenTypeRoutingServiceFactory;
 import com.wuyinai.wuaipdce.common.DeleteRequest;
@@ -38,6 +39,7 @@ import com.wuyinai.wuaipdce.service.UserService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
@@ -55,6 +57,8 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppService {
+    @Value("${code.deploy-host:http://localhost}")
+    private String deployHost;
     @Resource
     private UserService userService;
     @Resource
@@ -72,6 +76,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
     @Resource
     private AiCodeGenTypeRoutingServiceFactory aiCodeGenTypeRoutingServiceFactory;
+
+    @Resource
+    private AiCodeGenTitleServiceFactory aiCodeGenTitleServiceFactory ;
     /**
      * 添加上脱敏用户信息
      *
@@ -170,8 +177,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         App app = new App();
         BeanUtil.copyProperties(appAddRequest, app);
         app.setUserId(loginUser.getId());
-        // 将应用程序名称设置为 initPrompt 的前12个字符（如果 initPrompt 长度不足12个字符，则取整个字符串）。
-        app.setAppName(initPrompt.substring(0, Math.min(initPrompt.length(), 12)));
+        //使用AI智能概括网站标题
+        String string = aiCodeGenTitleServiceFactory.aiCodeGenTitleServicePrototype().generateHtmlCode(initPrompt);
+        app.setAppName(string);
         // 使用AI智能选择代码生成类型
         AiCodeGenTypeRoutingService routingService = aiCodeGenTypeRoutingServiceFactory.aiCodeGenTypeRoutingServicePrototype();
         CodeGenTypeEnum codeGenTypeEnum = routingService.routeCodeGenType(initPrompt);
@@ -460,7 +468,11 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         boolean updateResult = this.updateById(updateApp);
         ThrowUtils.throwIf(!updateResult, ErrorCode.OPERATION_ERROR, "更新应用部署信息失败");
         // 10. 返回可访问的 URL
-        String appDeployUrl = String.format("%s/%s/", AppConstant.CODE_DEPLOY_HOST, deployKey);
+
+
+// 10. 构建应用访问 URL
+        String appDeployUrl = String.format("%s/%s/", deployHost, deployKey);
+
         // 异步生成应用截图并更新应用封面
         generateAppScreenshotAsync(appId, appDeployUrl);
         return appDeployUrl ;

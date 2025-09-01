@@ -3,7 +3,6 @@ package com.wuyinai.wuaipdce.ai;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.wuyinai.wuaipdce.ai.guardrail.PromptSafetyInputGuardrail;
-import com.wuyinai.wuaipdce.ai.guardrail.RetryOutputGuardrail;
 import com.wuyinai.wuaipdce.ai.tools.ToolManager;
 import com.wuyinai.wuaipdce.exception.BusinessException;
 import com.wuyinai.wuaipdce.exception.ErrorCode;
@@ -115,17 +114,11 @@ public class AiCodeGeneratorServiceFactory {
         return switch (codeGenType) {
             case VUE_PROJECT -> {
                 StreamingChatModel reasoningStreamingChatModelPrototype = SpringContextUtil.getBean("reasoningStreamingChatModelPrototype", StreamingChatModel.class);
-                OutputGuardrailsConfig build = OutputGuardrailsConfig.builder()
-                        .maxRetries(2)
-                        .build();
                 yield AiServices.builder(AiCodeGeneratorService.class)
                         .streamingChatModel(reasoningStreamingChatModelPrototype)//使用的模型
                         .chatMemoryProvider(memoryId -> chatMemory)//因为使用MomeryId，所以这里需要使用Provider
                         .tools(toolManager.getAllTools())//需要使用工具
                         .inputGuardrails(new PromptSafetyInputGuardrail())// 添加输入护轨
-//                        .outputGuardrails(new RetryOutputGuardrail())//添加输出护轨
-//                        .outputGuardrailsConfig(build)
-                        .maxSequentialToolsInvocations(20)//允许连续调用20次工具
                         .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(
                                 toolExecutionRequest, "Error: there is no tool called" + toolExecutionRequest
                                         .name()
@@ -134,16 +127,11 @@ public class AiCodeGeneratorServiceFactory {
             }
             case HTML, MULTI_FILE -> {
                 StreamingChatModel streamingChatModelPrototype = SpringContextUtil.getBean("streamingChatModelPrototype", StreamingChatModel.class);
-                OutputGuardrailsConfig build = OutputGuardrailsConfig.builder()
-                        .maxRetries(2)
-                        .build();
                 yield AiServices.builder(AiCodeGeneratorService.class)
                         .chatModel(chatModel)
                         .streamingChatModel(streamingChatModelPrototype)
                         .chatMemory(chatMemory)
                         .inputGuardrails(new PromptSafetyInputGuardrail())// 添加输入护轨
-//                        .outputGuardrails(new RetryOutputGuardrail())//添加输出护轨,添加会影响流式输出
-//                        .outputGuardrailsConfig(build)
                         .build();
             }
             default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR, "不支持的代码生成类型: " + codeGenType);

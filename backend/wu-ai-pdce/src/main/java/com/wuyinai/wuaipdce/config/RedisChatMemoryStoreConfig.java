@@ -1,5 +1,6 @@
 package com.wuyinai.wuaipdce.config;
 
+import cn.hutool.core.util.StrUtil;
 import dev.langchain4j.community.store.memory.chat.redis.RedisChatMemoryStore;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -25,11 +26,14 @@ public class RedisChatMemoryStoreConfig {
 
     @Bean
     public RedisChatMemoryStore redisChatMeMoryStore() {
-        return RedisChatMemoryStore.builder()
+        RedisChatMemoryStore.Builder builder = RedisChatMemoryStore.builder()
                 .host(host)
                 .port(port)
                 .password(password)
-                .ttl(ttl)
-                .build();
+                .ttl(ttl);
+        if (StrUtil.isNotBlank(password)){
+            builder.user("default");
+        }
+        return builder.build();
     }
 }
