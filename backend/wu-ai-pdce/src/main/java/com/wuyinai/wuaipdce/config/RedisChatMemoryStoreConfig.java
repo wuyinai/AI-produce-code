@@ -26,14 +26,11 @@ public class RedisChatMemoryStoreConfig {
 
     @Bean
     public RedisChatMemoryStore redisChatMeMoryStore() {
-        RedisChatMemoryStore.Builder builder = RedisChatMemoryStore.builder()
+        return RedisChatMemoryStore.builder()
                 .host(host)
                 .port(port)
                 .password(password)
-                .ttl(ttl);
-        if (StrUtil.isNotBlank(password)){
-            builder.user("default");
-        }
-        return builder.build();
+                .ttl(ttl)
+                .build();
     }
 }

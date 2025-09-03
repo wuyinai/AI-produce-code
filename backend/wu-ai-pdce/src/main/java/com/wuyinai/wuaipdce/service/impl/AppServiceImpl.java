@@ -57,8 +57,8 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppService {
-    @Value("${code.deploy-host:http://localhost}")
-    private String deployHost;
+//    @Value("${code.deploy-host:http://localhost}")
+//    private String deployHost;
     @Resource
     private UserService userService;
     @Resource
@@ -471,8 +471,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
 
 // 10. 构建应用访问 URL
-        String appDeployUrl = String.format("%s/%s/", deployHost, deployKey);
-
+//        String appDeployUrl = String.format("%s/%s/", deployHost, deployKey);
+// 10. 返回可访问的 URL
+        String appDeployUrl = String.format("%s/%s/", AppConstant.CODE_DEPLOY_HOST, deployKey);
         // 异步生成应用截图并更新应用封面
         generateAppScreenshotAsync(appId, appDeployUrl);
         return appDeployUrl ;
