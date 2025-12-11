@@ -4,7 +4,7 @@
 create database if not exists wuyinai_nocode;
 
 -- 切换库
-use wuyinai_nocode;
+use wu_ai_pdce_code;
 
 -- 用户表
 -- 用户表

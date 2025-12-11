@@ -12,8 +12,6 @@ public interface AiCodeGenTypeRoutingService {
 
     /**
      * 根据用户输入，选择生成代码的类型
-     * @param userPrompt
-     * @return
      */
     @SystemMessage(fromResource = "prompt/code-choose-routing-prompt.txt")
     CodeGenTypeEnum routeCodeGenType(String userPrompt);

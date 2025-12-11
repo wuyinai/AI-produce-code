@@ -124,5 +124,12 @@ public interface UserService extends IService<User> {
      * 分页获取用户封装列表（仅管理员）
      */
     Page<UserVO> listUserVOByPage(UserQueryRequest userQueryRequest);
+
+    /**
+     * 获取当前用户应用被精选和聊天次数
+     * @param request
+     * @return
+     */
+    Object getAppChatNumber(HttpServletRequest request);
 }
 

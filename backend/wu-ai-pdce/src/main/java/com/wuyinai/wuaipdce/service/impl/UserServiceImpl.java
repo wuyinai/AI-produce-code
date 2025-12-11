@@ -20,8 +20,11 @@ import com.wuyinai.wuaipdce.model.enums.UserRoleEnum;
 import com.wuyinai.wuaipdce.model.vo.LoginUserVO;
 import com.wuyinai.wuaipdce.model.vo.UserVO;
 import com.wuyinai.wuaipdce.service.UserService;
+import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
@@ -46,6 +49,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
      * @param checkPassword
      * @return
      */
+    @Resource
+    protected UserMapper usermapper;
+
     @Override
     public long userRegister(String userAccount, String userPassword, String checkPassword) {
         //判断参数是否为空
@@ -90,8 +96,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
 
     /**
      * 获取加密密码
-     * @param userPassword
-     * @return
      */
     @Override
     public String getEncryptPassword(String userPassword) {
@@ -102,8 +106,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
 
     /**
      * 进行用户脱敏
-     * @param user
-     * @return
      */
     @Override
     public LoginUserVO getLoginUserVO(User user) {
@@ -117,9 +119,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
 
     /**
      * 用户登录
-     * @param userAccount
-     * @param userPassword
-     * @param request
      * @return 返回脱敏后的用户信息
      */
     @Override
@@ -344,5 +343,19 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
         return userVOPage;
     }
 
+    @Override
+    public Object getAppChatNumber(HttpServletRequest request) {
 
+        try {
+            Object user = request.getSession().getAttribute(USER_LOGIN_STATE);
+            User loginUser = null;
+            if (user != null) {
+                loginUser = (User) user;
+            }
+            assert loginUser != null;
+            return usermapper.getAppChatNumber(loginUser.getId());
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.Query_Information_Error);
+        }
+    }
 }

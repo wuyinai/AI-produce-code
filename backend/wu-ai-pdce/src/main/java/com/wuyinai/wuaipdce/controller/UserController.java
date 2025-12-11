@@ -150,4 +150,14 @@ public class UserController {
         return ResultUtils.success(userVOPage);
     }
 
+    /**
+     * 获取当前用户应用被精选和聊天次数
+     *
+     * @param request 查询请求参数
+     */
+    @PostMapping("/getAppChatNumber")
+    public BaseResponse<Object> getAppChatNumber(HttpServletRequest request) {
+        Object number = userService.getAppChatNumber(request);
+        return ResultUtils.success(number);
+    }
 }
