@@ -56,6 +56,14 @@ export async function getUserVoById(
   })
 }
 
+/** 此处后端没有提供注释 POST /user/getAppChatNumber */
+export async function getAppChatNumber(options?: { [key: string]: any }) {
+  return request<API.BaseResponseObject>('/user/getAppChatNumber', {
+    method: 'POST',
+    ...(options || {}),
+  })
+}
+
 /** 此处后端没有提供注释 GET /user/list */
 export async function getLoginUser(options?: { [key: string]: any }) {
   return request<API.BaseResponseUser>('/user/list', {

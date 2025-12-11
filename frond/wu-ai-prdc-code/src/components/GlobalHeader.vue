@@ -28,8 +28,8 @@
           <div v-if="loginUserStore.loginUser.id" class="user-info">
             <a-dropdown>
               <div class="user-dropdown">
-                <a-avatar 
-                  :src="loginUserStore.loginUser.userAvatar" 
+                <a-avatar
+                  :src="loginUserStore.loginUser.userAvatar"
                   class="user-avatar"
                   :size="36"
                 >
@@ -38,14 +38,22 @@
                 <span class="username">{{ loginUserStore.loginUser.userName ?? '无名氏' }}</span>
                 <DownOutlined class="dropdown-icon" />
               </div>
+
               <template #overlay>
                 <a-menu class="user-menu">
                   <a-menu-item @click="doLogout">
                     <LogoutOutlined />
                     退出登录
                   </a-menu-item>
+
+                  <a-menu-item @click="goProfile">
+                    <UserOutlined />
+                    个人资料
+                  </a-menu-item>
                 </a-menu>
               </template>
+
+
             </a-dropdown>
           </div>
           <div v-else>
@@ -63,7 +71,7 @@ import { useRouter } from 'vue-router'
 import { type MenuProps, message } from 'ant-design-vue'
 import { useLoginUserStore } from '@/stores/loginUser.ts'
 import { userLogout } from '@/api/userController.ts'
-import { LogoutOutlined, HomeOutlined, DownOutlined } from '@ant-design/icons-vue'
+import { LogoutOutlined, HomeOutlined, DownOutlined ,UserOutlined} from '@ant-design/icons-vue'
 
 const loginUserStore = useLoginUserStore()
 const router = useRouter()
@@ -101,6 +109,21 @@ const originItems = [
     key: 'others',
     label: h('a', { href: 'href="https://github.com/wuyinai', target: '_blank' }, '超级智能'),
     title: '超级智能',
+  },
+  {
+    key: 'others',
+    label: '需求生成',
+    title: '需求生成',
+  },
+  {
+    key: 'others',
+    label: '后端代码生成',
+    title: '后端代码生成',
+  },
+  {
+    key: 'others',
+    label: 'PPT生成',
+    title: 'PPT生成',
   },
 ]
 
@@ -143,6 +166,11 @@ const doLogout = async () => {
   } else {
     message.error('退出登录失败，' + res.data.message)
   }
+}
+
+// 跳转到个人资料页面
+const goProfile = () => {
+  router.push('/user/profile')
 }
 </script>
 
@@ -316,15 +344,15 @@ const doLogout = async () => {
   .header {
     padding: 0 16px;
   }
-  
+
   .site-title {
     font-size: 16px;
   }
-  
+
   .username {
     display: none;
   }
-  
+
   .nav-menu :deep(.ant-menu-item span) {
     display: none;
   }

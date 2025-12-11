@@ -36,7 +36,7 @@
             <h2 class="input-title">描述您的想法</h2>
             <p class="input-subtitle">详细描述您想要的应用，AI将为您生成完整的网站</p>
           </div>
-          
+
           <div class="input-wrapper">
             <a-textarea
               v-model:value="userPrompt"
@@ -46,7 +46,7 @@
               class="prompt-textarea"
               :show-count="true"
             />
-            
+
             <div class="input-actions">
               <div class="input-meta">
                 <span class="char-count">{{ userPrompt.length }}/1000</span>
@@ -55,11 +55,11 @@
                   <span class="tips-text">详细描述可获得更好的生成效果</span>
                 </div>
               </div>
-              
-              <a-button 
-                type="primary" 
-                size="large" 
-                @click="createApp" 
+
+              <a-button
+                type="primary"
+                size="large"
+                @click="createApp"
                 :loading="creating"
                 class="create-btn"
                 :disabled="!userPrompt.trim()"
@@ -80,9 +80,9 @@
           <h3 class="quick-title">快速开始</h3>
           <p class="quick-subtitle">选择一个模板快速创建您的应用</p>
         </div>
-        
+
         <div class="template-grid">
-          <div 
+          <div
             class="template-card"
             @click="setPrompt('创建一个现代化的个人博客网站，包含文章列表、详情页、分类标签、搜索功能、评论系统和个人简介页面。采用简洁的设计风格，支持响应式布局，文章支持Markdown格式，首页展示最新文章和热门推荐。')"
           >
@@ -94,8 +94,8 @@
               <span class="tag">评论系统</span>
             </div>
           </div>
-          
-          <div 
+
+          <div
             class="template-card"
             @click="setPrompt('设计一个专业的企业官网，包含公司介绍、产品服务展示、新闻资讯、联系我们等页面。采用商务风格的设计，包含轮播图、产品展示卡片、团队介绍、客户案例展示，支持多语言切换和在线客服功能。')"
           >
@@ -107,8 +107,8 @@
               <span class="tag">在线客服</span>
             </div>
           </div>
-          
-          <div 
+
+          <div
             class="template-card"
             @click="setPrompt('构建一个功能完整的在线商城，包含商品展示、购物车、用户注册登录、订单管理、支付结算等功能。设计现代化的商品卡片布局，支持商品搜索筛选、用户评价、优惠券系统和会员积分功能。')"
           >
@@ -120,8 +120,8 @@
               <span class="tag">会员系统</span>
             </div>
           </div>
-          
-          <div 
+
+          <div
             class="template-card"
             @click="setPrompt('制作一个精美的作品展示网站，适合设计师、摄影师、艺术家等创作者。包含作品画廊、项目详情页、个人简历、联系方式等模块。采用瀑布流或网格布局展示作品，支持图片放大预览和作品分类筛选。')"
           >
@@ -595,7 +595,7 @@ onMounted(() => {
   background: rgba(255, 255, 255, 0.98);
   border-radius: 24px;
   padding: 40px;
-  box-shadow: 
+  box-shadow:
     0 20px 40px rgba(0, 0, 0, 0.08),
     0 0 0 1px rgba(102, 126, 234, 0.1);
   backdrop-filter: blur(20px);
@@ -777,7 +777,8 @@ onMounted(() => {
   border-radius: 20px;
   padding: 2px;
   background: linear-gradient(135deg, #667eea, #764ba2);
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-image: linear-gradient(to right, #fff 0%, #fff 100%);
+  mask-mode: alpha;
   mask-composite: exclude;
   opacity: 0;
   transition: opacity 0.4s ease;
