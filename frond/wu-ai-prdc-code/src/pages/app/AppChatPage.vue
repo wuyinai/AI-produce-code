@@ -150,6 +150,7 @@
         <div class="preview-header">
           <h3>生成后的网页展示</h3>
           <div class="preview-actions">
+            <!-- 现有编辑模式按钮 -->
             <a-button
               v-if="isOwner && previewUrl"
               type="link"
@@ -163,6 +164,38 @@
               </template>
               {{ isEditMode ? '退出编辑' : '编辑模式' }}
             </a-button>
+            
+            <!-- 添加直接修改按钮 -->
+          <a-button
+            v-if="isOwner && previewUrl && isEditMode"
+            type="link"
+            :danger="isDirectEditMode"
+            @click="toggleDirectEditMode"
+            :class="{ 'direct-edit-active': isDirectEditMode }"
+            style="padding: 0; height: auto; margin-right: 12px"
+          >
+            <template #icon>
+              <EditOutlined />
+            </template>
+            {{ isDirectEditMode ? '退出直接修改' : '直接修改' }}
+          </a-button>
+          
+          <!-- 添加保存直接修改按钮 -->
+          <a-button
+            v-if="isOwner && previewUrl && isDirectEditMode"
+            type="primary"
+            size="small"
+            @click="saveDirectEditContent"
+            :loading="isSaving"
+            style="padding: 0 12px; height: auto; margin-right: 12px"
+          >
+            <template #icon>
+              <SaveOutlined />
+            </template>
+            保存修改
+          </a-button>
+            
+            <!-- 现有新窗口打开按钮 -->
             <a-button v-if="previewUrl" type="link" @click="openInNewTab">
               <template #icon>
                 <ExportOutlined />
@@ -218,6 +251,7 @@ import {
   getAppVoById,
   deployApp as deployAppApi,
   deleteApp as deleteAppApi,
+  saveDirectEdit,
 } from '@/api/appController'
 import { listAppChatHistory } from '@/api/chatHistoryController'
 import { CodeGenTypeEnum, formatCodeGenType } from '@/utils/codeGenTypes'
@@ -237,6 +271,7 @@ import {
   InfoCircleOutlined,
   DownloadOutlined,
   EditOutlined,
+  SaveOutlined,
 } from '@ant-design/icons-vue'
 
 const route = useRoute()
@@ -280,12 +315,76 @@ const downloading = ref(false)
 
 // 可视化编辑相关
 const isEditMode = ref(false)
+const isDirectEditMode = ref(false) // 添加直接修改模式状态
+const isSaving = ref(false) // 添加保存状态
 const selectedElementInfo = ref<ElementInfo | null>(null)
 const visualEditor = new VisualEditor({
   onElementSelected: (elementInfo: ElementInfo) => {
     selectedElementInfo.value = elementInfo
   },
 })
+
+// 直接修改模式切换函数
+const toggleDirectEditMode = () => {
+  // 检查iframe是否已经加载
+  const iframe = document.querySelector('.preview-iframe') as HTMLIFrameElement
+  if (!iframe) {
+    message.warning('请等待页面加载完成')
+    return
+  }
+  // 确保visualEditor已初始化
+  if (!previewReady.value) {
+    message.warning('请等待页面加载完成')
+    return
+  }
+  // 切换直接修改模式
+  const newDirectEditMode = visualEditor.toggleDirectEditMode()
+  isDirectEditMode.value = newDirectEditMode
+}
+
+// 保存直接修改的内容
+const saveDirectEditContent = async () => {
+  // 检查iframe是否已经加载
+  const iframe = document.querySelector('.preview-iframe') as HTMLIFrameElement
+  if (!iframe) {
+    message.warning('请等待页面加载完成')
+    return
+  }
+  // 确保visualEditor已初始化
+  if (!previewReady.value) {
+    message.warning('请等待页面加载完成')
+    return
+  }
+  
+  try {
+    isSaving.value = true
+    
+    // 调用visualEditor的保存方法，获取修改的文件内容
+    const modifiedFiles = await visualEditor.saveDirectEdit()
+    
+    if (!modifiedFiles || modifiedFiles.length === 0) {
+      message.info('没有需要保存的修改')
+      return
+    }
+    
+    // 调用后端API保存修改
+    const res = await saveDirectEdit({
+      appId: appId.value,
+      files: modifiedFiles
+    })
+    
+    if (res.data.code === 0) {
+      message.success('修改保存成功')
+    } else {
+      message.error('修改保存失败：' + res.data.message)
+    }
+  } catch (error) {
+    console.error('保存直接修改内容失败：', error)
+    message.error('保存失败，请重试')
+  } finally {
+    isSaving.value = false
+  }
+}
 
 // 权限相关
 const isOwner = computed(() => {
@@ -735,8 +834,15 @@ const toggleEditMode = () => {
     message.warning('请等待页面加载完成')
     return
   }
+  
   const newEditMode = visualEditor.toggleEditMode()
   isEditMode.value = newEditMode
+  
+  // 如果退出编辑模式，同时退出直接修改模式
+  if (!newEditMode && isDirectEditMode.value) {
+    visualEditor.toggleDirectEditMode()
+    isDirectEditMode.value = false
+  }
 }
 
 const clearSelectedElement = () => {
@@ -1066,15 +1172,27 @@ onUnmounted(() => {
   }
 
   /* 编辑模式按钮样式 */
-  .edit-mode-active {
-    background-color: #52c41a !important;
-    border-color: #52c41a !important;
-    color: white !important;
-  }
+.edit-mode-active {
+  background-color: #52c41a !important;
+  border-color: #52c41a !important;
+  color: white !important;
+}
 
-  .edit-mode-active:hover {
-    background-color: #73d13d !important;
-    border-color: #73d13d !important;
-  }
+.edit-mode-active:hover {
+  background-color: #73d13d !important;
+  border-color: #73d13d !important;
+}
+
+/* 直接修改按钮样式 */
+.direct-edit-active {
+  background-color: #faad14 !important;
+  border-color: #faad14 !important;
+  color: white !important;
+}
+
+.direct-edit-active:hover {
+  background-color: #fa8c16 !important;
+  border-color: #fa8c16 !important;
+}
 }
 </style>

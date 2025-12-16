@@ -180,3 +180,15 @@ export async function updateApp(body: API.AppUpdateRequest, options?: { [key: st
     ...(options || {}),
   })
 }
+
+/** 保存直接修改的内容 POST /app/save-direct-edit */
+export async function saveDirectEdit(body: any, options?: { [key: string]: any }) {
+  return request<API.BaseResponseBoolean>('/app/save-direct-edit', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  })
+}
