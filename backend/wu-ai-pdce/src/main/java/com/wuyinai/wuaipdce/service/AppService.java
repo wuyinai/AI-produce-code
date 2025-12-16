@@ -4,10 +4,7 @@ import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.service.IService;
 import com.wuyinai.wuaipdce.common.DeleteRequest;
-import com.wuyinai.wuaipdce.model.dto.app.AppAddRequest;
-import com.wuyinai.wuaipdce.model.dto.app.AppAdminUpdateRequest;
-import com.wuyinai.wuaipdce.model.dto.app.AppQueryRequest;
-import com.wuyinai.wuaipdce.model.dto.app.AppUpdateRequest;
+import com.wuyinai.wuaipdce.model.dto.app.*;
 import com.wuyinai.wuaipdce.model.entity.App;
 import com.wuyinai.wuaipdce.model.entity.User;
 import com.wuyinai.wuaipdce.model.vo.AppVO;
@@ -114,4 +111,11 @@ public interface AppService extends IService<App> {
      * @param appUrl
      */
     void generateAppScreenshotAsync(Long appId, String appUrl);
+    
+    /**
+     * 保存直接修改的内容
+     * @param appSaveDirectEditRequest 保存请求
+     * @param loginUser 登录用户
+     */
+    void saveDirectEdit(AppSaveDirectEditRequest appSaveDirectEditRequest, User loginUser);
 }

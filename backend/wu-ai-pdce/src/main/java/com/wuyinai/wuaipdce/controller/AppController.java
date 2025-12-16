@@ -285,4 +285,21 @@ public class AppController {
         //通用下载服务
         projectDownloadService.downloadProjectAsZip(sourceDirPath, downloadFileName, response);
     }
+    
+    /**
+     * 保存直接修改的内容
+     * @param appSaveDirectEditRequest 保存请求
+     * @param request 请求
+     * @return 保存结果
+     */
+    @PostMapping("/save-direct-edit")
+    public BaseResponse<Boolean> saveDirectEdit(@RequestBody AppSaveDirectEditRequest appSaveDirectEditRequest, HttpServletRequest request) {
+        ThrowUtils.throwIf(appSaveDirectEditRequest == null, ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(appSaveDirectEditRequest.getAppId() == null || appSaveDirectEditRequest.getAppId() <= 0, ErrorCode.PARAMS_ERROR, "应用id不能为空");
+        ThrowUtils.throwIf(appSaveDirectEditRequest.getFiles() == null || appSaveDirectEditRequest.getFiles().isEmpty(), ErrorCode.PARAMS_ERROR, "修改的文件不能为空");
+        
+        User loginUser = userService.getLoginUser(request);
+        appService.saveDirectEdit(appSaveDirectEditRequest, loginUser);
+        return ResultUtils.success(true);
+    }
 }

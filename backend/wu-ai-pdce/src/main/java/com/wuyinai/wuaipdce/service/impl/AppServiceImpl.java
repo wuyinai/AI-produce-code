@@ -22,10 +22,7 @@ import com.wuyinai.wuaipdce.exception.BusinessException;
 import com.wuyinai.wuaipdce.exception.ErrorCode;
 import com.wuyinai.wuaipdce.exception.ThrowUtils;
 import com.wuyinai.wuaipdce.mapper.AppMapper;
-import com.wuyinai.wuaipdce.model.dto.app.AppAddRequest;
-import com.wuyinai.wuaipdce.model.dto.app.AppAdminUpdateRequest;
-import com.wuyinai.wuaipdce.model.dto.app.AppQueryRequest;
-import com.wuyinai.wuaipdce.model.dto.app.AppUpdateRequest;
+import com.wuyinai.wuaipdce.model.dto.app.*;
 import com.wuyinai.wuaipdce.model.entity.App;
 import com.wuyinai.wuaipdce.model.entity.User;
 import com.wuyinai.wuaipdce.model.enums.ChatHistoryMessageTypeEnum;
@@ -524,6 +521,66 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             boolean updated = this.updateById(updateApp);
             ThrowUtils.throwIf(!updated, ErrorCode.OPERATION_ERROR, "更新应用封面字段失败");
         });
+    }
+    
+    /**
+     * 保存直接修改的内容
+     *
+     * @param appSaveDirectEditRequest 保存请求
+     * @param loginUser 登录用户
+     */
+    @Override
+    public void saveDirectEdit(AppSaveDirectEditRequest appSaveDirectEditRequest, User loginUser) {
+        Long appId = appSaveDirectEditRequest.getAppId();
+        List<AppSaveDirectEditRequest.EditedFile> files = appSaveDirectEditRequest.getFiles();
+        
+        // 1. 查询应用
+        App app = this.getById(appId);
+        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
+        
+        // 2. 验证用户是否有权限访问该应用
+        if (!app.getUserId().equals(loginUser.getId())) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+        }
+        
+        // 3. 构建应用代码目录路径（生成目录，非部署目录）
+        String codeGenType = app.getCodeGenType();
+        String sourceDirName = codeGenType + "_" + appId;
+        String sourceDirPath = AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + sourceDirName;
+        
+        // 4. 检查代码目录是否存在
+        File sourceDir = new File(sourceDirPath);
+        ThrowUtils.throwIf(!sourceDir.exists() || !sourceDir.isDirectory(), ErrorCode.NOT_FOUND_ERROR, "应用代码不存在");
+        
+        // 5. 遍历修改的文件列表，保存文件内容
+        for (AppSaveDirectEditRequest.EditedFile editedFile : files) {
+            String filePath = editedFile.getFilePath();
+            String content = editedFile.getContent();
+            
+            // 对于HTML类型的应用，直接保存为index.html
+            // 对于其他类型的应用，根据实际情况处理
+            String finalFilePath = "index.html";
+            
+            // 构建完整的文件路径，直接修改源文件
+            File file = new File(sourceDir, finalFilePath);
+            
+            // 确保文件所在目录存在
+            File parentDir = file.getParentFile();
+            if (!parentDir.exists()) {
+                parentDir.mkdirs();
+            }
+            
+            // 保存文件内容
+            FileUtil.writeString(content, file, "UTF-8");
+            log.info("直接修改保存文件: {}", file.getAbsolutePath());
+        }
+        
+        // 6. 更新应用的编辑时间
+        App updateApp = new App();
+        updateApp.setId(appId);
+        updateApp.setEditTime(LocalDateTime.now());
+        boolean updated = this.updateById(updateApp);
+        ThrowUtils.throwIf(!updated, ErrorCode.OPERATION_ERROR, "更新应用编辑时间失败");
     }
 
 }
