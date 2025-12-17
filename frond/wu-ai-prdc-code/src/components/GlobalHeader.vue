@@ -41,14 +41,19 @@
 
               <template #overlay>
                 <a-menu class="user-menu">
-                  <a-menu-item @click="doLogout">
-                    <LogoutOutlined />
-                    退出登录
-                  </a-menu-item>
-
                   <a-menu-item @click="goProfile">
                     <UserOutlined />
                     个人资料
+                  </a-menu-item>
+
+                  <a-menu-item @click="goFriends">
+                    <UserAddOutlined />
+                    我的好友
+                  </a-menu-item>
+
+                  <a-menu-item @click="doLogout">
+                    <LogoutOutlined />
+                    退出登录
                   </a-menu-item>
                 </a-menu>
               </template>
@@ -71,7 +76,7 @@ import { useRouter } from 'vue-router'
 import { type MenuProps, message } from 'ant-design-vue'
 import { useLoginUserStore } from '@/stores/loginUser.ts'
 import { userLogout } from '@/api/userController.ts'
-import { LogoutOutlined, HomeOutlined, DownOutlined ,UserOutlined} from '@ant-design/icons-vue'
+import { LogoutOutlined, HomeOutlined, DownOutlined, UserOutlined, UserAddOutlined } from '@ant-design/icons-vue'
 
 const loginUserStore = useLoginUserStore()
 const router = useRouter()
@@ -106,22 +111,22 @@ const originItems = [
     title: '对话管理',
   },
   {
-    key: 'others',
-    label: h('a', { href: 'href="https://github.com/wuyinai', target: '_blank' }, '超级智能'),
+    key: 'super-intelligence',
+    label: h('a', { href: 'https://github.com/wuyinai', target: '_blank' }, '超级智能'),
     title: '超级智能',
   },
   {
-    key: 'others',
+    key: 'demand-generation',
     label: '需求生成',
     title: '需求生成',
   },
   {
-    key: 'others',
+    key: 'backend-code',
     label: '后端代码生成',
     title: '后端代码生成',
   },
   {
-    key: 'others',
+    key: 'ppt-generation',
     label: 'PPT生成',
     title: 'PPT生成',
   },
@@ -171,6 +176,11 @@ const doLogout = async () => {
 // 跳转到个人资料页面
 const goProfile = () => {
   router.push('/user/profile')
+}
+
+// 跳转到好友列表页面
+const goFriends = () => {
+  router.push('/user/friends')
 }
 </script>
 

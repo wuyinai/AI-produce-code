@@ -8,6 +8,7 @@ import AppChatPage from '@/pages/app/AppChatPage.vue'
 import AppEditPage from '@/pages/app/AppEditPage.vue'
 import ChatManagePage from '@/pages/admin/ChatManagePage.vue'
 import UserProfilePage from '@/pages/user/UserProfilePage.vue'
+import UserFriendsPage from '@/pages/user/UserFriendsPage.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -56,6 +57,11 @@ const router = createRouter({
       path: '/user/profile',
       name: '个人资料',
       component: UserProfilePage,
+    },
+    {
+      path: '/user/friends',
+      name: '我的好友',
+      component: UserFriendsPage,
     },
   ],
 })

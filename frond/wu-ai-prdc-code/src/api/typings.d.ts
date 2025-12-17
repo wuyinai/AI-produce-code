@@ -1,4 +1,8 @@
 declare namespace API {
+  type acceptFriendRequestParams = {
+    requestId: number
+  }
+
   type AppAddRequest = {
     initPrompt?: string
   }
@@ -27,6 +31,11 @@ declare namespace API {
     deployKey?: string
     priority?: number
     userId?: number
+  }
+
+  type AppSaveDirectEditRequest = {
+    appId?: number
+    files?: EditedFile[]
   }
 
   type AppUpdateRequest = {
@@ -58,6 +67,24 @@ declare namespace API {
   type BaseResponseBoolean = {
     code?: number
     data?: boolean
+    message?: string
+  }
+
+  type BaseResponseFriendVO = {
+    code?: number
+    data?: FriendVO
+    message?: string
+  }
+
+  type BaseResponseListFriendRequestVO = {
+    code?: number
+    data?: FriendRequestVO[]
+    message?: string
+  }
+
+  type BaseResponseListFriendVO = {
+    code?: number
+    data?: FriendVO[]
     message?: string
   }
 
@@ -144,6 +171,10 @@ declare namespace API {
     message: string
   }
 
+  type deleteFriendParams = {
+    friendId: number
+  }
+
   type DeleteRequest = {
     id?: number
   }
@@ -152,12 +183,48 @@ declare namespace API {
     appId: number
   }
 
+  type EditedFile = {
+    filePath?: string
+    content?: string
+  }
+
+  type FriendRequestDTO = {
+    toUserId?: number
+    message?: string
+  }
+
+  type FriendRequestVO = {
+    id?: number
+    fromUserId?: number
+    fromUserName?: string
+    fromUserAvatar?: string
+    fromUserAccount?: string
+    toUserId?: number
+    message?: string
+    status?: string
+    createTime?: string
+  }
+
+  type FriendVO = {
+    id?: number
+    userName?: string
+    userAvatar?: string
+    userAccount?: string
+    userProfile?: string
+    status?: string
+    createTime?: string
+  }
+
   type getAppVOByIdByAdminParams = {
     id: number
   }
 
   type getAppVOByIdParams = {
     id: number
+  }
+
+  type getFriendDetailParams = {
+    friendId: number
   }
 
   type getUserByIdParams = {
@@ -210,6 +277,14 @@ declare namespace API {
     totalPage?: number
     totalRow?: number
     optimizeCountQuery?: boolean
+  }
+
+  type rejectFriendRequestParams = {
+    requestId: number
+  }
+
+  type searchUsersParams = {
+    keyword: string
   }
 
   type ServerSentEventString = true

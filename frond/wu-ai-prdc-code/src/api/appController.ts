@@ -169,9 +169,12 @@ export async function listMyAppVoByPage(
   })
 }
 
-/** 此处后端没有提供注释 POST /app/update */
-export async function updateApp(body: API.AppUpdateRequest, options?: { [key: string]: any }) {
-  return request<API.BaseResponseBoolean>('/app/update', {
+/** 此处后端没有提供注释 POST /app/save-direct-edit */
+export async function saveDirectEdit(
+  body: API.AppSaveDirectEditRequest,
+  options?: { [key: string]: any }
+) {
+  return request<API.BaseResponseBoolean>('/app/save-direct-edit', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -181,9 +184,9 @@ export async function updateApp(body: API.AppUpdateRequest, options?: { [key: st
   })
 }
 
-/** 保存直接修改的内容 POST /app/save-direct-edit */
-export async function saveDirectEdit(body: any, options?: { [key: string]: any }) {
-  return request<API.BaseResponseBoolean>('/app/save-direct-edit', {
+/** 此处后端没有提供注释 POST /app/update */
+export async function updateApp(body: API.AppUpdateRequest, options?: { [key: string]: any }) {
+  return request<API.BaseResponseBoolean>('/app/update', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
