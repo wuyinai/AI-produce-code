@@ -150,6 +150,40 @@
         <div class="preview-header">
           <h3>生成后的网页展示</h3>
           <div class="preview-actions">
+            <!-- 设备切换按钮 -->
+            <div class="device-switcher">
+              <a-tooltip title="手机" placement="top">
+                <a-button
+                  type="text"
+                  :class="{ 'device-active': currentDevice === 'mobile' }"
+                  @click="switchDevice('mobile')"
+                  size="small"
+                >
+                  📱
+                </a-button>
+              </a-tooltip>
+              <a-tooltip title="平板" placement="top">
+                <a-button
+                  type="text"
+                  :class="{ 'device-active': currentDevice === 'tablet' }"
+                  @click="switchDevice('tablet')"
+                  size="small"
+                >
+                  💻
+                </a-button>
+              </a-tooltip>
+              <a-tooltip title="PC" placement="top">
+                <a-button
+                  type="text"
+                  :class="{ 'device-active': currentDevice === 'desktop' }"
+                  @click="switchDevice('desktop')"
+                  size="small"
+                >
+                  🖥️
+                </a-button>
+              </a-tooltip>
+            </div>
+
             <!-- 现有编辑模式按钮 -->
             <a-button
               v-if="isOwner && previewUrl"
@@ -164,37 +198,37 @@
               </template>
               {{ isEditMode ? '退出编辑' : '编辑模式' }}
             </a-button>
-            
+
             <!-- 添加直接修改按钮 -->
-          <a-button
-            v-if="isOwner && previewUrl && isEditMode"
-            type="link"
-            :danger="isDirectEditMode"
-            @click="toggleDirectEditMode"
-            :class="{ 'direct-edit-active': isDirectEditMode }"
-            style="padding: 0; height: auto; margin-right: 12px"
-          >
-            <template #icon>
-              <EditOutlined />
-            </template>
-            {{ isDirectEditMode ? '退出直接修改' : '直接修改' }}
-          </a-button>
-          
-          <!-- 添加保存直接修改按钮 -->
-          <a-button
-            v-if="isOwner && previewUrl && isDirectEditMode"
-            type="primary"
-            size="small"
-            @click="saveDirectEditContent"
-            :loading="isSaving"
-            style="padding: 0 12px; height: auto; margin-right: 12px"
-          >
-            <template #icon>
-              <SaveOutlined />
-            </template>
-            保存修改
-          </a-button>
-            
+            <a-button
+              v-if="isOwner && previewUrl && isEditMode"
+              type="link"
+              :danger="isDirectEditMode"
+              @click="toggleDirectEditMode"
+              :class="{ 'direct-edit-active': isDirectEditMode }"
+              style="padding: 0; height: auto; margin-right: 12px"
+            >
+              <template #icon>
+                <EditOutlined />
+              </template>
+              {{ isDirectEditMode ? '退出直接修改' : '直接修改' }}
+            </a-button>
+
+            <!-- 添加保存直接修改按钮 -->
+            <a-button
+              v-if="isOwner && previewUrl && isDirectEditMode"
+              type="primary"
+              size="small"
+              @click="saveDirectEditContent"
+              :loading="isSaving"
+              style="padding: 0 12px; height: auto; margin-right: 12px"
+            >
+              <template #icon>
+                <SaveOutlined />
+              </template>
+              保存修改
+            </a-button>
+
             <!-- 现有新窗口打开按钮 -->
             <a-button v-if="previewUrl" type="link" @click="openInNewTab">
               <template #icon>
@@ -204,7 +238,7 @@
             </a-button>
           </div>
         </div>
-        <div class="preview-content">
+        <div class="preview-content" :class="deviceClass">
           <div v-if="!previewUrl && !isGenerating" class="preview-placeholder">
             <div class="placeholder-icon">🌐</div>
             <p>网站文件生成完成后将在这里展示</p>
@@ -213,13 +247,14 @@
             <a-spin size="large" />
             <p>正在生成网站...</p>
           </div>
-          <iframe
-            v-else
-            :src="previewUrl"
-            class="preview-iframe"
-            frameborder="0"
-            @load="onIframeLoad"
-          ></iframe>
+          <div v-else class="device-preview-container">
+            <iframe
+              :src="previewUrl"
+              class="preview-iframe"
+              frameborder="0"
+              @load="onIframeLoad"
+            ></iframe>
+          </div>
         </div>
       </div>
     </div>
@@ -324,6 +359,19 @@ const visualEditor = new VisualEditor({
   },
 })
 
+// 设备预览相关
+const currentDevice = ref('desktop') // 默认桌面模式
+
+// 设备切换函数
+const switchDevice = (device: 'mobile' | 'tablet' | 'desktop') => {
+  currentDevice.value = device
+}
+
+// 计算当前设备的样式类
+const deviceClass = computed(() => {
+  return `device-${currentDevice.value}`
+})
+
 // 直接修改模式切换函数
 const toggleDirectEditMode = () => {
   // 检查iframe是否已经加载
@@ -355,24 +403,24 @@ const saveDirectEditContent = async () => {
     message.warning('请等待页面加载完成')
     return
   }
-  
+
   try {
     isSaving.value = true
-    
+
     // 调用visualEditor的保存方法，获取修改的文件内容
     const modifiedFiles = await visualEditor.saveDirectEdit()
-    
+
     if (!modifiedFiles || modifiedFiles.length === 0) {
       message.info('没有需要保存的修改')
       return
     }
-    
+
     // 调用后端API保存修改
     const res = await saveDirectEdit({
       appId: appId.value,
       files: modifiedFiles
     })
-    
+
     if (res.data.code === 0) {
       message.success('修改保存成功')
     } else {
@@ -475,8 +523,10 @@ const fetchAppInfo = async () => {
 
       // 先加载对话历史
       await loadChatHistory()
-      // 如果有至少2条对话记录，展示对应的网站
-      if (messages.value.length >= 2) {
+      // 检查URL参数，如果有view=1，则直接展示预览
+      const viewParam = route.query.view
+      // 如果有至少2条对话记录，或者URL中有view=1参数，展示对应的网站
+      if (messages.value.length >= 2 || viewParam === '1') {
         updatePreview()
       }
       // 检查是否需要自动发送初始提示词
@@ -585,7 +635,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
 
     // 构建URL参数
     const params = new URLSearchParams({
-      appId: appId.value || '',
+      appId: String(appId.value || ''),
       message: userMessage,
     })
 
@@ -692,7 +742,7 @@ const handleError = (error: unknown, aiMessageIndex: number) => {
 const updatePreview = () => {
   if (appId.value) {
     const codeGenType = appInfo.value?.codeGenType || CodeGenTypeEnum.HTML
-    const newPreviewUrl = getStaticPreviewUrl(codeGenType, appId.value)
+    const newPreviewUrl = getStaticPreviewUrl(codeGenType, String(appId.value))
     previewUrl.value = newPreviewUrl
     previewReady.value = true
   }
@@ -834,10 +884,10 @@ const toggleEditMode = () => {
     message.warning('请等待页面加载完成')
     return
   }
-  
+
   const newEditMode = visualEditor.toggleEditMode()
   isEditMode.value = newEditMode
-  
+
   // 如果退出编辑模式，同时退出直接修改模式
   if (!newEditMode && isDirectEditMode.value) {
     visualEditor.toggleDirectEditMode()
@@ -1083,6 +1133,81 @@ onUnmounted(() => {
   border: none;
 }
 
+/* 设备切换按钮样式 */
+.device-switcher {
+  display: flex;
+  gap: 8px;
+  margin-right: 12px;
+  border-right: 1px solid #e8e8e8;
+  padding-right: 12px;
+}
+
+.device-switcher .ant-btn {
+  border-radius: 6px;
+  padding: 4px 12px;
+  transition: all 0.3s ease;
+}
+
+.device-switcher .ant-btn:hover {
+  background-color: #f0f0f0;
+}
+
+.device-active {
+  background-color: #1890ff !important;
+  color: white !important;
+}
+
+/* 设备预览容器样式 */
+.preview-content {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f5f5f5;
+}
+
+.device-preview-container {
+  position: relative;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* 桌面模式 */
+.device-desktop .device-preview-container {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* 平板模式 */
+.device-tablet .device-preview-container {
+  width: 768px;
+  height: 1024px;
+  max-width: 90%;
+  max-height: 90%;
+  background-color: white;
+  border: 8px solid #333;
+  border-radius: 24px;
+}
+
+/* 手机模式 */
+.device-mobile .device-preview-container {
+  width: 375px;
+  height: 667px;
+  max-width: 90%;
+  max-height: 90%;
+  background-color: white;
+  border: 8px solid #333;
+  border-radius: 24px;
+}
+
 .selected-element-alert {
   margin: 0 16px;
 }
@@ -1172,27 +1297,27 @@ onUnmounted(() => {
   }
 
   /* 编辑模式按钮样式 */
-.edit-mode-active {
-  background-color: #52c41a !important;
-  border-color: #52c41a !important;
-  color: white !important;
-}
+  .edit-mode-active {
+    background-color: #52c41a !important;
+    border-color: #52c41a !important;
+    color: white !important;
+  }
 
-.edit-mode-active:hover {
-  background-color: #73d13d !important;
-  border-color: #73d13d !important;
-}
+  .edit-mode-active:hover {
+    background-color: #73d13d !important;
+    border-color: #73d13d !important;
+  }
 
-/* 直接修改按钮样式 */
-.direct-edit-active {
-  background-color: #faad14 !important;
-  border-color: #faad14 !important;
-  color: white !important;
-}
+  /* 直接修改按钮样式 */
+  .direct-edit-active {
+    background-color: #faad14 !important;
+    border-color: #faad14 !important;
+    color: white !important;
+  }
 
-.direct-edit-active:hover {
-  background-color: #fa8c16 !important;
-  border-color: #fa8c16 !important;
-}
+  .direct-edit-active:hover {
+    background-color: #fa8c16 !important;
+    border-color: #fa8c16 !important;
+  }
 }
 </style>
