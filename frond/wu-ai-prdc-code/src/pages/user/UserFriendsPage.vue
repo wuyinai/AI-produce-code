@@ -70,9 +70,6 @@
                 :title="friend.userName || '未设置昵称'"
                 :description="friend.userProfile || '暂无简介'"
               >
-                <template #avatar>
-                  <a-avatar :src="friend.userAvatar || defaultAvatar" />
-                </template>
               </a-card-meta>
               <div class="card-actions">
                 <a-button type="primary" ghost @click="viewFriendDetail(friend)">
@@ -200,9 +197,6 @@
                 :title="user.userName || user.userAccount"
                 :description="user.userProfile || '暂无简介'"
               >
-                <template #avatar>
-                  <a-avatar :src="user.userAvatar || defaultAvatar" />
-                </template>
               </a-card-meta>
               <div class="card-actions">
                 <a-button type="primary" @click="user.id && sendFriendRequest(user.id, (user.userName || user.userAccount || ''))">
@@ -528,11 +522,15 @@ const viewFriendDetail = (friend: API.FriendVO) => {
   height: 100%;
   display: flex;
   flex-direction: column;
+  padding: 16px;
 }
 
 .friend-card .ant-card-cover {
-  height: 150px;
+  height: 80px;
+  width: 80px;
+  border-radius: 50%;
   overflow: hidden;
+  margin: 0 auto 16px;
 }
 
 .friend-avatar {
@@ -542,10 +540,27 @@ const viewFriendDetail = (friend: API.FriendVO) => {
 }
 
 .card-actions {
-  margin-top: auto;
+  margin-top: 16px;
   display: flex;
-  justify-content: flex-end;
-  gap: 10px;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.friend-card .ant-card-meta {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.friend-card .ant-card-meta-title {
+  margin-bottom: 8px !important;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.friend-card .ant-card-meta-description {
+  color: #666;
+  font-size: 14px;
+  line-height: 1.4;
 }
 
 /* 好友请求 */
@@ -614,11 +629,32 @@ const viewFriendDetail = (friend: API.FriendVO) => {
   height: 100%;
   display: flex;
   flex-direction: column;
+  padding: 16px;
 }
 
 .search-result-card .ant-card-cover {
-  height: 150px;
+  height: 80px;
+  width: 80px;
+  border-radius: 50%;
   overflow: hidden;
+  margin: 0 auto 16px;
+}
+
+.search-result-card .ant-card-meta {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.search-result-card .ant-card-meta-title {
+  margin-bottom: 8px !important;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.search-result-card .ant-card-meta-description {
+  color: #666;
+  font-size: 14px;
+  line-height: 1.4;
 }
 
 /* 添加好友弹窗 */
