@@ -56,6 +56,7 @@ declare namespace API {
     createTime?: string
     updateTime?: string
     user?: UserVO
+    status?: string
   }
 
   type BaseResponseAppVO = {

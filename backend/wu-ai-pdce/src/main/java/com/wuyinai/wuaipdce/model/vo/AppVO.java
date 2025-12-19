@@ -68,5 +68,10 @@ public class AppVO implements Serializable {
      */
     private UserVO user;
 
+    /**
+     * 应用状态：开发中、协作中、发布中
+     */
+    private String status;
+
     private static final long serialVersionUID = 1L;
 }

@@ -105,4 +105,10 @@ public class App implements Serializable {
     @Column(value = "isDelete", isLogicDelete = true)
     private Integer isDelete;
 
+    /**
+     * 应用状态：开发中、协作中、发布中
+     */
+    @Column("status")
+    private String status;
+
 }
