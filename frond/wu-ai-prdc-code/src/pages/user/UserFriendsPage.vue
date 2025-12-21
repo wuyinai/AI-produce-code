@@ -279,7 +279,7 @@ const selectedUserAvatar = ref('')
 const friendRequestMessage = ref('')
 
 // 默认头像
-const defaultAvatar = 'https://gw.alipayobjects.com/zos/rmsportal/BiazfanxmamNRoxxVxka.png'
+const defaultAvatar = 'https://img95.699pic.com/photo/40239/4976.jpg_wh860.jpg'
 
 // 计算属性
 const requestCount = computed(() => receivedRequests.value.length)
@@ -524,10 +524,10 @@ const viewFriendDetail = (friend: API.FriendVO) => {
   flex-direction: column;
   padding: 16px;
 }
-
+/* 好友卡片 */
 .friend-card .ant-card-cover {
-  height: 80px;
-  width: 80px;
+  height: 40px;
+  width: 40px;
   border-radius: 50%;
   overflow: hidden;
   margin: 0 auto 16px;
@@ -633,8 +633,8 @@ const viewFriendDetail = (friend: API.FriendVO) => {
 }
 
 .search-result-card .ant-card-cover {
-  height: 80px;
-  width: 80px;
+  height: 40px;
+  width: 40px;
   border-radius: 50%;
   overflow: hidden;
   margin: 0 auto 16px;
