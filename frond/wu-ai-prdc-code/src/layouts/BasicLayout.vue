@@ -14,6 +14,11 @@
 <script setup lang="ts">
 import GlobalHeader from '@/components/GlobalHeader.vue'
 import GlobalFooter from '@/components/GlobalFooter.vue'
+// 引入WebSocket store，自动初始化WebSocket连接
+import { useWebSocketStore } from '@/stores/websocket'
+
+// 初始化WebSocket连接
+const useWebSocket = useWebSocketStore()
 </script>
 
 <style scoped>

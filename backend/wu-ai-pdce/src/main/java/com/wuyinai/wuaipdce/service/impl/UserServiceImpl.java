@@ -146,6 +146,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
         if (user == null) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "用户不存在或密码错误");
         }
+        //更新用户在线状态为在线
+        user.setOnlineStatus("online");
+        this.updateById(user);
         //记录用户登录态
         request.getSession().setAttribute(USER_LOGIN_STATE, user);
         //返回脱敏后的数据
@@ -182,6 +185,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
         if (user == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR, "未登录");
         }
+        //更新用户在线状态为离线
+        User loginUser = (User) user;
+        loginUser.setOnlineStatus("offline");
+        this.updateById(loginUser);
         //移除登录态
         request.getSession().removeAttribute(USER_LOGIN_STATE);
         return true;

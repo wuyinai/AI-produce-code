@@ -58,4 +58,9 @@ public class FriendVO implements Serializable {
      */
     private LocalDateTime createTime;
 
+    /**
+     * 在线状态：online/offline
+     */
+    private String onlineStatus;
+
 }

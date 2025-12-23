@@ -153,7 +153,11 @@
             <artifactId>redisson</artifactId>
             <version>3.50.0</version>
         </dependency>
-
+        <!-- WebSocket依赖 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket</artifactId>
+        </dependency>
     </dependencies>
 
 

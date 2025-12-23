@@ -60,11 +60,20 @@
               class="friend-card"
             >
               <template #cover>
-                <img
-                  alt="好友头像"
-                  :src="friend.userAvatar || defaultAvatar"
-                  class="friend-avatar"
-                />
+                <div class="friend-avatar-container">
+                  <img
+                    alt="好友头像"
+                    :src="friend.userAvatar || defaultAvatar"
+                    class="friend-avatar"
+                  />
+                  <span
+                    class="online-status-indicator"
+                    :class="{
+                      'online': friend.onlineStatus === 'online',
+                      'offline': friend.onlineStatus === 'offline'
+                    }"
+                  ></span>
+                </div>
               </template>
               <a-card-meta
                 :title="friend.userName || '未设置昵称'"
@@ -237,7 +246,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, onBeforeUnmount } from 'vue'
 import { message } from 'ant-design-vue'
 import {
   UserOutlined,
@@ -271,6 +280,10 @@ const searchType = ref('account')
 const loading = ref(false)
 const hasSearched = ref(false)
 
+// WebSocket相关
+let ws: WebSocket | null = null
+const wsConnected = ref(false)
+
 // 添加好友弹窗相关
 const addFriendModalVisible = ref(false)
 const selectedUserId = ref<number>()
@@ -284,9 +297,76 @@ const defaultAvatar = 'https://img95.699pic.com/photo/40239/4976.jpg_wh860.jpg'
 // 计算属性
 const requestCount = computed(() => receivedRequests.value.length)
 
+// WebSocket相关方法
+const initWebSocket = () => {
+  // 获取当前页面的协议，判断是http还是https
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+  // 构建WebSocket连接URL
+  const wsUrl = `${protocol}//${window.location.host}/ws`
+  
+  try {
+    ws = new WebSocket(wsUrl)
+    
+    ws.onopen = () => {
+      console.log('WebSocket连接已建立')
+      wsConnected.value = true
+    }
+    
+    ws.onmessage = (event) => {
+      handleWebSocketMessage(event)
+    }
+    
+    ws.onclose = () => {
+      console.log('WebSocket连接已关闭')
+      wsConnected.value = false
+      // 尝试重连
+      reconnectWebSocket()
+    }
+    
+    ws.onerror = (error) => {
+      console.error('WebSocket错误:', error)
+      wsConnected.value = false
+    }
+  } catch (error) {
+    console.error('WebSocket连接失败:', error)
+  }
+}
+
+// 处理WebSocket消息
+const handleWebSocketMessage = (event: MessageEvent) => {
+  try {
+    const data = JSON.parse(event.data)
+    // 根据消息类型处理不同的业务逻辑
+    // 目前好友在线功能不需要处理消息，因为在线状态变更会通过重新加载好友列表来更新
+    // 这里可以根据需要扩展，例如处理实时消息等
+    console.log('收到WebSocket消息:', data)
+  } catch (error) {
+    console.error('解析WebSocket消息失败:', error)
+  }
+}
+
+// WebSocket重连
+const reconnectWebSocket = () => {
+  console.log('尝试重新连接WebSocket...')
+  // 3秒后尝试重连
+  setTimeout(() => {
+    initWebSocket()
+  }, 3000)
+}
+
 // 生命周期钩子
 onMounted(() => {
   loadFriendData()
+  // 初始化WebSocket连接
+  initWebSocket()
+})
+
+// 组件销毁前关闭WebSocket连接
+onBeforeUnmount(() => {
+  if (ws) {
+    ws.close()
+    ws = null
+  }
 })
 
 // 加载好友数据
@@ -533,10 +613,36 @@ const viewFriendDetail = (friend: API.FriendVO) => {
   margin: 0 auto 16px;
 }
 
+.friend-avatar-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
 .friend-avatar {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  border-radius: 50%;
+}
+
+.online-status-indicator {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.2);
+}
+
+.online-status-indicator.online {
+  background-color: #52c41a;
+}
+
+.online-status-indicator.offline {
+  background-color: #f5222d;
 }
 
 .card-actions {

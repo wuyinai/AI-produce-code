@@ -64,7 +64,7 @@ export async function getAppChatNumber(options?: { [key: string]: any }) {
   })
 }
 
-/** 获取当前登录用户 */
+/** 此处后端没有提供注释 GET /user/list */
 export async function getLoginUser(options?: { [key: string]: any }) {
   return request<API.BaseResponseUser>('/user/list', {
     method: 'GET',

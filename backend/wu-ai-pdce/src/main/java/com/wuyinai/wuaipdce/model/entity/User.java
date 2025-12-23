@@ -73,6 +73,12 @@ public class User implements Serializable {
     private String userRole;
 
     /**
+     * 在线状态：online/offline
+     */
+    @Column("onlineStatus")
+    private String onlineStatus;
+
+    /**
      * 编辑时间
      */
     @Column("editTime")

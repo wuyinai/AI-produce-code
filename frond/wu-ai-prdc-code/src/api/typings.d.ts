@@ -31,6 +31,7 @@ declare namespace API {
     deployKey?: string
     priority?: number
     userId?: number
+    status?: string
   }
 
   type AppSaveDirectEditRequest = {
@@ -208,12 +209,14 @@ declare namespace API {
 
   type FriendVO = {
     id?: number
+    userId?: number
     userName?: string
     userAvatar?: string
     userAccount?: string
     userProfile?: string
     status?: string
     createTime?: string
+    onlineStatus?: string
   }
 
   type getAppVOByIdByAdminParams = {
@@ -306,6 +309,7 @@ declare namespace API {
     createTime?: string
     updateTime?: string
     isDelete?: number
+    onlineStatus?: number
   }
 
   type UserAddRequest = {

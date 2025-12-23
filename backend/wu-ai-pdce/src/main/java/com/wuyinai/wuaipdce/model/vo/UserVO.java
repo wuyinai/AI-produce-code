@@ -41,6 +41,11 @@ public class UserVO implements Serializable {
     private String userRole;
 
     /**
+     * 在线状态：online/offline
+     */
+    private String onlineStatus;
+
+    /**
      * 创建时间
      */
     private LocalDateTime createTime;
