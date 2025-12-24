@@ -67,6 +67,11 @@ public interface AppService extends IService<App> {
     Page<AppVO> listMyAppVOByPage(AppQueryRequest appQueryRequest, HttpServletRequest request);
 
     /**
+     * 分页获取当前用户的协作应用列表
+     */
+    Page<AppVO> listCollaborateAppVOByPage(AppQueryRequest appQueryRequest, HttpServletRequest request);
+
+    /**
      * 分页获取精选应用列表
      *
      */

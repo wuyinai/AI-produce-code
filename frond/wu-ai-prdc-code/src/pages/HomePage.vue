@@ -137,28 +137,52 @@
       </div>
 
       <!-- 我的作品 -->
-      <div class="section">
-        <h2 class="section-title">我的作品</h2>
-        <div class="app-grid">
-          <AppCard
-            v-for="app in myApps"
-            :key="app.id"
-            :app="app"
-            @view-chat="viewChat"
-            @view-work="viewWork"
-          />
-        </div>
-        <div class="pagination-wrapper">
-          <a-pagination
-            v-model:current="myAppsPage.current"
-            v-model:page-size="myAppsPage.pageSize"
-            :total="myAppsPage.total"
-            :show-size-changer="false"
-            :show-total="(total: number) => `共 ${total} 个应用`"
-            @change="loadMyApps"
-          />
-        </div>
+    <div class="section">
+      <h2 class="section-title">我的作品</h2>
+      <div class="app-grid">
+        <AppCard
+          v-for="app in myApps"
+          :key="app.id"
+          :app="app"
+          @view-chat="viewChat"
+          @view-work="viewWork"
+        />
       </div>
+      <div class="pagination-wrapper">
+        <a-pagination
+          v-model:current="myAppsPage.current"
+          v-model:page-size="myAppsPage.pageSize"
+          :total="myAppsPage.total"
+          :show-size-changer="false"
+          :show-total="(total: number) => `共 ${total} 个应用`"
+          @change="loadMyApps"
+        />
+      </div>
+    </div>
+
+    <!-- 协作作品 -->
+    <div class="section">
+      <h2 class="section-title">协作作品</h2>
+      <div class="app-grid">
+        <AppCard
+          v-for="app in collaborateApps"
+          :key="app.id"
+          :app="app"
+          @view-chat="viewChat"
+          @view-work="viewWork"
+        />
+      </div>
+      <div class="pagination-wrapper">
+        <a-pagination
+          v-model:current="collaborateAppsPage.current"
+          v-model:page-size="collaborateAppsPage.pageSize"
+          :total="collaborateAppsPage.total"
+          :show-size-changer="false"
+          :show-total="(total: number) => `共 ${total} 个应用`"
+          @change="loadCollaborateApps"
+        />
+      </div>
+    </div>
 
       <!-- 精选案例 -->
       <div class="section">
@@ -192,7 +216,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { useLoginUserStore } from '@/stores/loginUser'
-import { addApp, listMyAppVoByPage, listGoodAppVoByPage } from '@/api/appController'
+import { addApp, listMyAppVoByPage, listGoodAppVoByPage, listCollaborateAppVoByPage } from '@/api/appController'
 import { getDeployUrl } from '@/config/env'
 import AppCard from '@/components/AppCard.vue'
 
@@ -206,6 +230,14 @@ const creating = ref(false)
 // 我的应用数据
 const myApps = ref<API.AppVO[]>([])
 const myAppsPage = reactive({
+  current: 1,
+  pageSize: 6,
+  total: 0,
+})
+
+// 协作应用数据
+const collaborateApps = ref<API.AppVO[]>([])
+const collaborateAppsPage = reactive({
   current: 1,
   pageSize: 6,
   total: 0,
@@ -303,6 +335,29 @@ const loadFeaturedApps = async () => {
   }
 }
 
+// 加载协作应用
+const loadCollaborateApps = async () => {
+  if (!loginUserStore.loginUser.id) {
+    return
+  }
+
+  try {
+    const res = await listCollaborateAppVoByPage({
+      pageNum: collaborateAppsPage.current,
+      pageSize: collaborateAppsPage.pageSize,
+      sortField: 'createTime',
+      sortOrder: 'desc',
+    })
+
+    if (res.data.code === 0 && res.data.data) {
+      collaborateApps.value = res.data.data.records || []
+      collaborateAppsPage.total = res.data.data.totalRow || 0
+    }
+  } catch (error) {
+    console.error('加载协作应用失败：', error)
+  }
+}
+
 // 查看对话
 const viewChat = (appId: string | number | undefined) => {
   if (appId) {
@@ -323,6 +378,7 @@ const viewWork = (app: API.AppVO) => {
 // 页面加载时获取数据
 onMounted(() => {
   loadMyApps()
+  loadCollaborateApps()
   loadFeaturedApps()
 
   // 鼠标跟随光效
@@ -336,11 +392,19 @@ onMounted(() => {
     document.documentElement.style.setProperty('--mouse-y', `${y}%`)
   }
 
+  // 处理协作记录状态变更事件
+  const handleCollaborationStatusChange = () => {
+    // 重新加载协作作品列表
+    loadCollaborateApps()
+  }
+
   document.addEventListener('mousemove', handleMouseMove)
+  window.addEventListener('collaboration-status-change', handleCollaborationStatusChange)
 
   // 清理事件监听器
   return () => {
     document.removeEventListener('mousemove', handleMouseMove)
+    window.removeEventListener('collaboration-status-change', handleCollaborationStatusChange)
   }
 })
 </script>

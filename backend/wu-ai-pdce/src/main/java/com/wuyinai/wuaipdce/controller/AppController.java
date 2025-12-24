@@ -127,6 +127,20 @@ public class AppController {
         Page<AppVO> appVOPage = appService.listMyAppVOByPage(appQueryRequest, request);
         return ResultUtils.success(appVOPage);
     }
+
+    /**
+     * 分页获取当前用户的协作应用列表
+     *
+     * @param appQueryRequest 查询请求
+     * @param request         请求
+     * @return 应用列表
+     */
+    @PostMapping("/collaborate/list/page/vo")
+    public BaseResponse<Page<AppVO>> listCollaborateAppVOByPage(@RequestBody AppQueryRequest appQueryRequest, HttpServletRequest request) {
+        ThrowUtils.throwIf(appQueryRequest == null, ErrorCode.PARAMS_ERROR);
+        Page<AppVO> appVOPage = appService.listCollaborateAppVOByPage(appQueryRequest, request);
+        return ResultUtils.success(appVOPage);
+    }
     /**
      * 分页获取精选应用列表
      *

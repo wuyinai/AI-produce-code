@@ -61,3 +61,36 @@ create table chat_history
     INDEX idx_createTime (createTime),             -- 提升基于时间的查询性能
     INDEX idx_appId_createTime (appId, createTime) -- 游标查询核心索引
 ) comment '对话历史' collate = utf8mb4_unicode_ci;
+
+-- 协作记录表
+create table collaboration_record
+(
+    id           bigint auto_increment comment '协作记录ID' primary key,
+    appId        bigint                             not null comment '关联应用ID',
+    creatorId    bigint                             not null comment '创建者ID',
+    status       varchar(20)  default 'valid'       not null comment '协作状态：valid/invalid',
+    createTime   datetime     default CURRENT_TIMESTAMP not null comment '创建时间',
+    updateTime   datetime     default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP comment '更新时间',
+    isDelete     tinyint      default 0             not null comment '是否删除',
+    FOREIGN KEY (appId) REFERENCES app(id),
+    FOREIGN KEY (creatorId) REFERENCES user(id),
+    INDEX idx_appId (appId),
+    INDEX idx_creatorId (creatorId)
+) comment '协作记录' collate = utf8mb4_unicode_ci;
+
+-- 协作成员表
+create table collaboration_member
+(
+    id               bigint auto_increment comment '协作成员ID' primary key,
+    collaborationId  bigint                             not null comment '关联协作记录ID',
+    userId           bigint                             not null comment '用户ID',
+    joinTime         datetime     default CURRENT_TIMESTAMP not null comment '加入时间',
+    createTime       datetime     default CURRENT_TIMESTAMP not null comment '创建时间',
+    updateTime       datetime     default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP comment '更新时间',
+    isDelete         tinyint      default 0             not null comment '是否删除',
+    FOREIGN KEY (collaborationId) REFERENCES collaboration_record(id),
+    FOREIGN KEY (userId) REFERENCES user(id),
+    UNIQUE KEY uk_collaboration_user (collaborationId, userId),
+    INDEX idx_collaborationId (collaborationId),
+    INDEX idx_userId (userId)
+) comment '协作成员' collate = utf8mb4_unicode_ci;

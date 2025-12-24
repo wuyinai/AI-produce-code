@@ -169,6 +169,21 @@ export async function listMyAppVoByPage(
   })
 }
 
+/** 此处后端没有提供注释 POST /app/collaborate/list/page/vo */
+export async function listCollaborateAppVoByPage(
+  body: API.AppQueryRequest,
+  options?: { [key: string]: any }
+) {
+  return request<API.BaseResponsePageAppVO>('/app/collaborate/list/page/vo', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  })
+}
+
 /** 此处后端没有提供注释 POST /app/save-direct-edit */
 export async function saveDirectEdit(
   body: API.AppSaveDirectEditRequest,

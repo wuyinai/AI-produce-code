@@ -139,7 +139,18 @@ public class WebSocketHandler extends TextWebSocketHandler {
                 response.put("timestamp", System.currentTimeMillis());
                 session.sendMessage(new TextMessage(OBJECT_MAPPER.writeValueAsString(response)));
             }
-            // 可以添加其他类型消息的处理逻辑
+            // 处理协作邀请消息
+            else if ("collaboration_invite".equals(type)) {
+                handleCollaborationInvite(messageData, userId);
+            }
+            // 处理协作邀请接受消息
+            else if ("collaboration_accept".equals(type)) {
+                handleCollaborationAccept(messageData, userId);
+            }
+            // 处理协作邀请拒绝消息
+            else if ("collaboration_reject".equals(type)) {
+                handleCollaborationReject(messageData, userId);
+            }
         } catch (Exception e) {
             log.error("处理用户 {} 消息失败：{}", userId, e.getMessage(), e);
         }
@@ -253,6 +264,131 @@ public class WebSocketHandler extends TextWebSocketHandler {
                     log.error("向用户发送消息失败：{}", e.getMessage());
                 }
             }
+        }
+    }
+
+    /**
+     * 处理协作邀请消息
+     * 
+     * @param messageData 消息数据
+     * @param senderId 发送者ID
+     */
+    private void handleCollaborationInvite(Map<String, Object> messageData, Long senderId) throws IOException {
+        // 解析消息数据
+        Long receiverId = ((Number) messageData.get("receiverId")).longValue();
+        Long appId = ((Number) messageData.get("appId")).longValue();
+        String appName = (String) messageData.get("appName");
+        Long collaborationId = ((Number) messageData.get("collaborationId")).longValue();
+        
+        // 构建邀请消息
+        Map<String, Object> inviteMessage = new ConcurrentHashMap<>();
+        inviteMessage.put("type", "collaboration_invite");
+        inviteMessage.put("senderId", senderId);
+        inviteMessage.put("appId", appId);
+        inviteMessage.put("appName", appName);
+        inviteMessage.put("collaborationId", collaborationId);
+        inviteMessage.put("timestamp", System.currentTimeMillis());
+        
+        // 发送邀请消息给接收者
+        WebSocketSession receiverSession = ONLINE_USERS.get(receiverId);
+        if (receiverSession != null && receiverSession.isOpen()) {
+            receiverSession.sendMessage(new TextMessage(OBJECT_MAPPER.writeValueAsString(inviteMessage)));
+            log.info("向用户 {} 发送协作邀请消息成功", receiverId);
+        } else {
+            log.warn("用户 {} 不在线，无法发送协作邀请消息", receiverId);
+        }
+    }
+
+    /**
+     * 处理协作邀请接受消息
+     * 
+     * @param messageData 消息数据
+     * @param receiverId 接收者ID
+     */
+    private void handleCollaborationAccept(Map<String, Object> messageData, Long receiverId) throws IOException {
+        // 解析消息数据
+        Long senderId = ((Number) messageData.get("senderId")).longValue();
+        Long collaborationId = ((Number) messageData.get("collaborationId")).longValue();
+        
+        // 构建接受消息
+        Map<String, Object> acceptMessage = new ConcurrentHashMap<>();
+        acceptMessage.put("type", "collaboration_accept");
+        acceptMessage.put("senderId", senderId);
+        acceptMessage.put("receiverId", receiverId);
+        acceptMessage.put("collaborationId", collaborationId);
+        acceptMessage.put("timestamp", System.currentTimeMillis());
+        
+        // 发送接受消息给发送者
+        WebSocketSession senderSession = ONLINE_USERS.get(senderId);
+        if (senderSession != null && senderSession.isOpen()) {
+            senderSession.sendMessage(new TextMessage(OBJECT_MAPPER.writeValueAsString(acceptMessage)));
+            log.info("向用户 {} 发送协作邀请接受消息成功", senderId);
+        } else {
+            log.warn("用户 {} 不在线，无法发送协作邀请接受消息", senderId);
+        }
+    }
+
+    /**
+     * 处理协作邀请拒绝消息
+     * 
+     * @param messageData 消息数据
+     * @param receiverId 接收者ID
+     */
+    private void handleCollaborationReject(Map<String, Object> messageData, Long receiverId) throws IOException {
+        // 解析消息数据
+        Long senderId = ((Number) messageData.get("senderId")).longValue();
+        Long collaborationId = ((Number) messageData.get("collaborationId")).longValue();
+        String reason = (String) messageData.get("reason");
+        
+        // 构建拒绝消息
+        Map<String, Object> rejectMessage = new ConcurrentHashMap<>();
+        rejectMessage.put("type", "collaboration_reject");
+        rejectMessage.put("senderId", senderId);
+        rejectMessage.put("receiverId", receiverId);
+        rejectMessage.put("collaborationId", collaborationId);
+        rejectMessage.put("reason", reason);
+        rejectMessage.put("timestamp", System.currentTimeMillis());
+        
+        // 发送拒绝消息给发送者
+        WebSocketSession senderSession = ONLINE_USERS.get(senderId);
+        if (senderSession != null && senderSession.isOpen()) {
+            senderSession.sendMessage(new TextMessage(OBJECT_MAPPER.writeValueAsString(rejectMessage)));
+            log.info("向用户 {} 发送协作邀请拒绝消息成功", senderId);
+        } else {
+            log.warn("用户 {} 不在线，无法发送协作邀请拒绝消息", senderId);
+        }
+    }
+
+    /**
+     * 发送协作邀请消息
+     * 
+     * @param senderId 发送者ID
+     * @param receiverId 接收者ID
+     * @param appId 应用ID
+     * @param appName 应用名称
+     * @param collaborationId 协作记录ID
+     */
+    public void sendCollaborationInvite(Long senderId, Long receiverId, Long appId, String appName, Long collaborationId) {
+        try {
+            // 构建邀请消息
+            Map<String, Object> inviteMessage = new ConcurrentHashMap<>();
+            inviteMessage.put("type", "collaboration_invite");
+            inviteMessage.put("senderId", senderId);
+            inviteMessage.put("appId", appId);
+            inviteMessage.put("appName", appName);
+            inviteMessage.put("collaborationId", collaborationId);
+            inviteMessage.put("timestamp", System.currentTimeMillis());
+            
+            // 发送邀请消息给接收者
+            WebSocketSession receiverSession = ONLINE_USERS.get(receiverId);
+            if (receiverSession != null && receiverSession.isOpen()) {
+                receiverSession.sendMessage(new TextMessage(OBJECT_MAPPER.writeValueAsString(inviteMessage)));
+                log.info("向用户 {} 发送协作邀请消息成功", receiverId);
+            } else {
+                log.warn("用户 {} 不在线，无法发送协作邀请消息", receiverId);
+            }
+        } catch (IOException e) {
+            log.error("发送协作邀请消息失败：{}", e.getMessage(), e);
         }
     }
 }

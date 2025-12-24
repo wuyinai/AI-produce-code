@@ -9,6 +9,53 @@
         </a-tag>
       </div>
       <div class="header-right">
+        <!-- 协作相关按钮 -->
+        <template v-if="isOwner">
+          <a-button
+            v-if="!isCollaborating"
+            type="primary"
+            @click="startCollaboration"
+            :loading="collaborationLoading"
+          >
+            <template #icon>
+              <TeamOutlined />
+            </template>
+            开始协作
+          </a-button>
+          <template v-else>
+            <a-button
+              type="primary"
+              @click="showAddCollaboratorModal"
+              :loading="collaborationLoading"
+            >
+              <template #icon>
+                <UserAddOutlined />
+              </template>
+              添加协作者
+            </a-button>
+            <a-button
+              type="default"
+              @click="showCollaboratorsModal"
+              :loading="collaborationLoading"
+            >
+              <template #icon>
+                <TeamOutlined />
+              </template>
+              查看协作者
+            </a-button>
+            <a-button
+              type="default"
+              danger
+              @click="exitCollaboration"
+              :loading="collaborationLoading"
+            >
+              <template #icon>
+                <CloseOutlined />
+              </template>
+              退出协作
+            </a-button>
+          </template>
+        </template>
         <a-button type="default" @click="showAppDetail">
           <template #icon>
             <InfoCircleOutlined />
@@ -274,6 +321,82 @@
       :deploy-url="deployUrl"
       @open-site="openDeployedSite"
     />
+
+    <!-- 添加协作者弹窗 -->
+    <FriendSelector
+      v-model:visible="addCollaboratorModalVisible"
+      :collaboration-id="collaborationId"
+      :app-id="appId"
+      :app-name="appInfo?.appName || null"
+      @add-collaborators="handleAddCollaborators"
+    />
+
+    <!-- 查看协作者弹窗 -->
+    <a-modal
+      v-model:open="collaboratorsModalVisible"
+      title="协作者列表"
+      @ok="collaboratorsModalVisible = false"
+      @cancel="collaboratorsModalVisible = false"
+      width="600px"
+      :ok-text="'确定'"
+      :cancel-text="'关闭'"
+    >
+      <a-table
+        :columns="collaboratorsColumns"
+        :data-source="collaboratorsList"
+        :pagination="false"
+        :scroll="{ y: 300 }"
+        row-key="id"
+        bordered
+        :loading="collaboratorsLoading"
+      >
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.key === 'joinTime'">
+            {{ new Date(record.joinTime || '').toLocaleString() }}
+          </template>
+          <template v-else-if="column.key === 'createTime'">
+            {{ new Date(record.createTime || '').toLocaleString() }}
+          </template>
+        </template>
+      </a-table>
+    </a-modal>
+
+    <!-- 协作邀请通知 -->
+    <a-popover
+      v-if="collaborationInvites.length > 0"
+      v-model:open="invitePopoverVisible"
+      trigger="hover"
+      placement="bottomRight"
+      title="收到协作邀请"
+      @open-change="handleInvitePopoverOpenChange"
+    >
+      <template #content>
+        <div class="invite-list">
+          <div v-for="invite in collaborationInvites" :key="invite.id" class="invite-item">
+            <div class="invite-info">
+              <div class="invite-title">
+                <a-avatar :src="invite.senderAvatar || ''" size="small" />
+                <span class="sender-name">{{ invite.senderName || '未知用户' }}</span>
+              </div>
+              <div class="invite-content">邀请您协作开发：{{ invite.appName }}</div>
+            </div>
+            <div class="invite-actions">
+              <a-button type="primary" size="small" @click="acceptCollaborationInvite(invite)">
+                接受
+              </a-button>
+              <a-button size="small" @click="rejectCollaborationInvite(invite)"> 拒绝 </a-button>
+            </div>
+          </div>
+        </div>
+      </template>
+      <a-button type="primary" danger>
+        <template #icon>
+          <BellOutlined />
+        </template>
+        邀请
+        <a-badge :count="collaborationInvites.length" :overflow-count="99" />
+      </a-button>
+    </a-popover>
   </div>
 </template>
 
@@ -282,6 +405,8 @@ import { ref, onMounted, nextTick, onUnmounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { useLoginUserStore } from '@/stores/loginUser'
+import { useWebSocketStore } from '@/stores/websocket'
+import { webSocketService } from '@/utils/websocket'
 import {
   getAppVoById,
   deployApp as deployAppApi,
@@ -289,12 +414,14 @@ import {
   saveDirectEdit,
 } from '@/api/appController'
 import { listAppChatHistory } from '@/api/chatHistoryController'
+import { getCollaborationMembers } from '@/api/collaborationController'
 import { CodeGenTypeEnum, formatCodeGenType } from '@/utils/codeGenTypes'
 import request from '@/request'
 
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 import AppDetailModal from '@/components/AppDetailModal.vue'
 import DeploySuccessModal from '@/components/DeploySuccessModal.vue'
+import FriendSelector from '@/components/FriendSelector.vue'
 import aiAvatar from '@/assets/aiAvatar.png'
 import { API_BASE_URL, getStaticPreviewUrl } from '@/config/env'
 import { VisualEditor, type ElementInfo } from '@/utils/visualEditor'
@@ -307,11 +434,31 @@ import {
   DownloadOutlined,
   EditOutlined,
   SaveOutlined,
+  TeamOutlined,
+  UserAddOutlined,
+  CloseOutlined,
+  BellOutlined,
 } from '@ant-design/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
+const webSocketStore = useWebSocketStore()
+
+// 协作邀请相关状态
+const collaborationInvites = ref<
+  Array<{
+    id: string
+    senderId: number
+    senderName?: string
+    senderAvatar?: string
+    appId: number
+    appName: string
+    collaborationId: number
+    timestamp: number
+  }>
+>([])
+const invitePopoverVisible = ref(false)
 
 // 应用信息
 const appInfo = ref<API.AppVO>()
@@ -325,14 +472,14 @@ interface Message {
   createTime?: string
 }
 
-const messages = ref<Message[]>([])// 消息列表
+const messages = ref<Message[]>([]) // 消息列表
 const userInput = ref('')
 const isGenerating = ref(false)
 const messagesContainer = ref<HTMLElement>()
 
 // 对话历史相关
-const loadingHistory = ref(false)// 加载状态
-const hasMoreHistory = ref(false)// 是否还有更多历史
+const loadingHistory = ref(false) // 加载状态
+const hasMoreHistory = ref(false) // 是否还有更多历史
 const lastCreateTime = ref<string>() //游标：最后一条消息的创建时间
 const historyLoaded = ref(false)
 
@@ -418,7 +565,7 @@ const saveDirectEditContent = async () => {
     // 调用后端API保存修改
     const res = await saveDirectEdit({
       appId: appId.value,
-      files: modifiedFiles
+      files: modifiedFiles,
     })
 
     if (res.data.code === 0) {
@@ -449,6 +596,200 @@ const appDetailVisible = ref(false)
 // 显示应用详情
 const showAppDetail = () => {
   appDetailVisible.value = true
+}
+
+// 协作相关状态
+const isCollaborating = ref(false)
+const collaborationId = ref<number | null>(null)
+const collaborationLoading = ref(false)
+const addCollaboratorModalVisible = ref(false)
+const collaboratorsModalVisible = ref(false)
+const collaboratorsList = ref<API.CollaborationMember[]>([])
+const collaboratorsLoading = ref(false)
+
+// 协作者列表列定义
+const collaboratorsColumns = [
+  {
+    title: '用户昵称',
+    dataIndex: 'userName',
+    key: 'userName',
+    ellipsis: true,
+  },
+  {
+    title: '加入时间',
+    key: 'joinTime',
+    width: 200,
+    ellipsis: true,
+  },
+  {
+    title: '创建时间',
+    key: 'createTime',
+    width: 200,
+    ellipsis: true,
+  },
+]
+
+// 开始协作
+const startCollaboration = async () => {
+  collaborationLoading.value = true
+  try {
+    // 调用API开始协作
+    const res = await request.post(`/collaboration/start/${appId.value}`)
+    if (res.data.code === 0) {
+      collaborationId.value = res.data.data
+      isCollaborating.value = true
+      message.success('开始协作成功')
+    } else {
+      message.error('开始协作失败：' + res.data.message)
+    }
+  } catch (error) {
+    console.error('开始协作失败：', error)
+    message.error('开始协作失败，请重试')
+  } finally {
+    collaborationLoading.value = false
+  }
+}
+
+// 显示添加协作者弹窗
+const showAddCollaboratorModal = () => {
+  addCollaboratorModalVisible.value = true
+}
+
+// 显示协作者列表弹窗
+const showCollaboratorsModal = async () => {
+  if (!collaborationId.value) return
+
+  await fetchCollaboratorsList()
+  collaboratorsModalVisible.value = true
+}
+
+// 获取协作者列表
+const fetchCollaboratorsList = async () => {
+  if (!collaborationId.value) return
+
+  collaboratorsLoading.value = true
+  try {
+    const res = await getCollaborationMembers({ collaborationId: collaborationId.value })
+    if (res.data.code === 0 && res.data.data) {
+      collaboratorsList.value = res.data.data
+    } else {
+      message.error('获取协作者列表失败：' + res.data.message)
+    }
+  } catch (error) {
+    console.error('获取协作者列表失败：', error)
+    message.error('获取协作者列表失败，请重试')
+  } finally {
+    collaboratorsLoading.value = false
+  }
+}
+
+// 退出协作
+const exitCollaboration = async () => {
+  if (!collaborationId.value) return
+
+  collaborationLoading.value = true
+  try {
+    // 调用API退出协作
+    const res = await request.post(`/collaboration/exit/${collaborationId.value}`)
+    if (res.data.code === 0) {
+      isCollaborating.value = false
+      collaborationId.value = null
+      message.success('退出协作成功')
+    } else {
+      message.error('退出协作失败：' + res.data.message)
+    }
+  } catch (error) {
+    console.error('退出协作失败：', error)
+    message.error('退出协作失败，请重试')
+  } finally {
+    collaborationLoading.value = false
+  }
+}
+
+// 处理添加协作者
+const handleAddCollaborators = async (friendIds: number[]) => {
+  if (!collaborationId.value) return
+
+  collaborationLoading.value = true
+  try {
+    // 批量添加协作者
+    for (const friendId of friendIds) {
+      await request.post(`/collaboration/add/${collaborationId.value}`, { userId: friendId })
+    }
+    message.success('添加协作者成功')
+  } catch (error) {
+    console.error('添加协作者失败：', error)
+    message.error('添加协作者失败，请重试')
+  } finally {
+    collaborationLoading.value = false
+  }
+}
+
+// 处理邀请弹窗打开/关闭
+const handleInvitePopoverOpenChange = (open: boolean) => {
+  if (!open) {
+    // 弹窗关闭时，清空已处理的邀请
+    collaborationInvites.value = []
+  }
+}
+
+// 接受协作邀请
+const acceptCollaborationInvite = async (invite: any) => {
+  try {
+    // 调用API添加协作者
+    await request.post(`/collaboration/add/${invite.collaborationId}`, {
+      userId: loginUserStore.loginUser.id,
+    })
+    // 发送接受消息
+    sendCollaborationAccept(invite)
+    // 从邀请列表中移除
+    collaborationInvites.value = collaborationInvites.value.filter((i) => i.id !== invite.id)
+    // 跳转到协作应用页面
+    router.push(`/app/chat/${invite.appId}?view=1`)
+    message.success('接受协作邀请成功')
+  } catch (error) {
+    console.error('接受协作邀请失败：', error)
+    message.error('接受协作邀请失败，请重试')
+  }
+}
+
+// 拒绝协作邀请
+const rejectCollaborationInvite = async (invite: any) => {
+  try {
+    // 发送拒绝消息
+    sendCollaborationReject(invite)
+    // 从邀请列表中移除
+    collaborationInvites.value = collaborationInvites.value.filter((i) => i.id !== invite.id)
+    message.success('拒绝协作邀请成功')
+  } catch (error) {
+    console.error('拒绝协作邀请失败：', error)
+    message.error('拒绝协作邀请失败，请重试')
+  }
+}
+
+// 发送协作邀请接受消息
+const sendCollaborationAccept = (invite: any) => {
+  const message = JSON.stringify({
+    type: 'collaboration_accept',
+    senderId: invite.senderId,
+    receiverId: loginUserStore.loginUser.id,
+    collaborationId: invite.collaborationId,
+    timestamp: Date.now(),
+  })
+  webSocketService.send(message)
+}
+
+// 发送协作邀请拒绝消息
+const sendCollaborationReject = (invite: any) => {
+  const message = JSON.stringify({
+    type: 'collaboration_reject',
+    senderId: invite.senderId,
+    receiverId: loginUserStore.loginUser.id,
+    collaborationId: invite.collaborationId,
+    reason: '用户拒绝了您的协作邀请',
+    timestamp: Date.now(),
+  })
+  webSocketService.send(message)
 }
 
 // 加载对话历史
@@ -1319,5 +1660,54 @@ onUnmounted(() => {
     background-color: #fa8c16 !important;
     border-color: #fa8c16 !important;
   }
+}
+
+/* 协作邀请样式 */
+.invite-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.invite-item {
+  padding: 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.invite-item:last-child {
+  border-bottom: none;
+}
+
+.invite-info {
+  margin-bottom: 8px;
+}
+
+.invite-title {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.sender-name {
+  margin-left: 8px;
+  font-weight: 500;
+}
+
+.invite-content {
+  font-size: 14px;
+  color: #666;
+  margin-left: 32px;
+}
+
+.invite-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.invite-actions .ant-btn {
+  padding: 2px 8px;
+  height: auto;
+  font-size: 12px;
 }
 </style>

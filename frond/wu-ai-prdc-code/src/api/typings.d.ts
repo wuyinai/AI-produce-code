@@ -360,4 +360,82 @@ declare namespace API {
     userRole?: string
     createTime?: string
   }
+
+  // 协作相关类型
+  type CollaborationRequest = {
+    userId?: number
+  }
+
+  type CollaborationRecord = {
+    id?: number
+    appId?: number
+    creatorId?: number
+    status?: string
+    createTime?: string
+    updateTime?: string
+    isDelete?: number
+  }
+
+  type CollaborationMember = {
+    id?: number
+    collaborationId?: number
+    userId?: number
+    userName?: string
+    joinTime?: string
+    createTime?: string
+    updateTime?: string
+    isDelete?: number
+  }
+
+  // 协作API参数类型
+  type startCollaborationParams = {
+    appId: number
+  }
+
+  type addCollaboratorParams = {
+    collaborationId: number
+  }
+
+  type exitCollaborationParams = {
+    collaborationId: number
+  }
+
+  type getCollaborationRecordParams = {
+    collaborationId: number
+  }
+
+  type getCollaborationRecordByAppIdParams = {
+    appId: number
+  }
+
+  // 协作API响应类型
+  type BaseResponseCollaborationRecord = {
+    code?: number
+    data?: CollaborationRecord
+    message?: string
+  }
+
+  type BaseResponseCollaborationMember = {
+    code?: number
+    data?: CollaborationMember
+    message?: string
+  }
+
+  type BaseResponseListCollaborationMember = {
+    code?: number
+    data?: CollaborationMember[]
+    message?: string
+  }
+
+  type BaseResponseListCollaborationRecord = {
+    code?: number
+    data?: CollaborationRecord[]
+    message?: string
+  }
+
+  type BaseResponseListUserVO = {
+    code?: number
+    data?: UserVO[]
+    message?: string
+  }
 }

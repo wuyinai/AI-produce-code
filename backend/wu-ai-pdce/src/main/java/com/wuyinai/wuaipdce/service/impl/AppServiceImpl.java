@@ -24,6 +24,7 @@ import com.wuyinai.wuaipdce.exception.ThrowUtils;
 import com.wuyinai.wuaipdce.mapper.AppMapper;
 import com.wuyinai.wuaipdce.model.dto.app.*;
 import com.wuyinai.wuaipdce.model.entity.App;
+import com.wuyinai.wuaipdce.model.entity.CollaborationRecord;
 import com.wuyinai.wuaipdce.model.entity.User;
 import com.wuyinai.wuaipdce.model.enums.ChatHistoryMessageTypeEnum;
 import com.wuyinai.wuaipdce.model.enums.CodeGenTypeEnum;
@@ -31,6 +32,7 @@ import com.wuyinai.wuaipdce.model.vo.AppVO;
 import com.wuyinai.wuaipdce.model.vo.UserVO;
 import com.wuyinai.wuaipdce.service.AppService;
 import com.wuyinai.wuaipdce.service.ChatHistoryService;
+import com.wuyinai.wuaipdce.service.CollaborationService;
 import com.wuyinai.wuaipdce.service.ScreenshotService;
 import com.wuyinai.wuaipdce.service.UserService;
 import jakarta.annotation.Resource;
@@ -76,6 +78,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
     @Resource
     private AiCodeGenTitleServiceFactory aiCodeGenTitleServiceFactory ;
+    
+    @Resource
+    private CollaborationService collaborationService;
     /**
      * 添加上脱敏用户信息
      *
@@ -260,6 +265,49 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 只查询当前用户的应用
         appQueryRequest.setUserId(loginUser.getId());
         QueryWrapper queryWrapper = this.getQueryWrapper(appQueryRequest);
+        Page<App> appPage = this.page(Page.of(pageNum, pageSize), queryWrapper);
+        // 数据封装
+        Page<AppVO> appVOPage = new Page<>(pageNum, pageSize, appPage.getTotalRow());
+        List<AppVO> appVOList = this.getAppVOList(appPage.getRecords());
+        appVOPage.setRecords(appVOList);
+        return appVOPage;
+    }
+
+    /**
+     * 分页获取当前用户的协作应用列表
+     */
+    @Override
+    public Page<AppVO> listCollaborateAppVOByPage(AppQueryRequest appQueryRequest, HttpServletRequest request) {
+        User loginUser = userService.getLoginUser(request);
+        // 限制每页最多 20 个
+        long pageSize = appQueryRequest.getPageSize();
+        ThrowUtils.throwIf(pageSize > 20, ErrorCode.PARAMS_ERROR, "每页最多查询 20 个应用");
+        long pageNum = appQueryRequest.getPageNum();
+        
+        // 查询当前用户参与的所有协作记录
+        List<CollaborationRecord> collaborationRecords = collaborationService.getCollaborationsByUserId(loginUser.getId());
+        if (CollUtil.isEmpty(collaborationRecords)) {
+            // 如果没有协作记录，返回空分页
+            return new Page<>(pageNum, pageSize, 0);
+        }
+        
+        // 筛选出有效的协作记录，并获取关联的应用ID
+        List<Long> appIds = collaborationRecords.stream()
+                .filter(record -> "valid".equals(record.getStatus()))
+                .map(CollaborationRecord::getAppId)
+                .distinct()
+                .collect(Collectors.toList());
+        
+        if (CollUtil.isEmpty(appIds)) {
+            // 如果没有关联应用，返回空分页
+            return new Page<>(pageNum, pageSize, 0);
+        }
+        
+        // 查询这些应用的信息
+        QueryWrapper queryWrapper = this.getQueryWrapper(appQueryRequest)
+                .in("id", appIds)
+                .orderBy("createTime", false);
+        
         Page<App> appPage = this.page(Page.of(pageNum, pageSize), queryWrapper);
         // 数据封装
         Page<AppVO> appVOPage = new Page<>(pageNum, pageSize, appPage.getTotalRow());
