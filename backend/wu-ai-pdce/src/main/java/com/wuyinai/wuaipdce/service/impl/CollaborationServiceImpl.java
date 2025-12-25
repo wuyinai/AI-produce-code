@@ -10,6 +10,7 @@ import com.wuyinai.wuaipdce.service.CollaborationService;
 import com.wuyinai.wuaipdce.service.FriendService;
 import com.wuyinai.wuaipdce.service.UserService;
 import com.wuyinai.wuaipdce.service.AppService;
+import com.wuyinai.wuaipdce.websocket.WebSocketHandler;
 import jakarta.annotation.Resource;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
@@ -38,6 +39,10 @@ public class CollaborationServiceImpl extends ServiceImpl<CollaborationMemberMap
     @Resource
     @Lazy
     private AppService appService;
+
+    @Resource
+    @Lazy
+    private WebSocketHandler webSocketHandler;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -102,16 +107,26 @@ public class CollaborationServiceImpl extends ServiceImpl<CollaborationMemberMap
             return; // 用户已经是协作者，不需要重复添加
         }
 
-        // 添加协作者
-        CollaborationMember collaborationMember = CollaborationMember.builder()
-                .collaborationId(collaborationId)
-                .userId(userId)
-                .joinTime(LocalDateTime.now())
-                .createTime(LocalDateTime.now())
-                .updateTime(LocalDateTime.now())
-                .isDelete(0)
-                .build();
-        this.save(collaborationMember);
+        // 获取应用信息
+        App app = appService.getById(collaborationRecord.getAppId());
+        if (app == null) {
+            throw new IllegalArgumentException("无效的应用");
+        }
+
+        // 获取发送者信息（协作创建者）
+        User sender = userService.getById(collaborationRecord.getCreatorId());
+        if (sender == null) {
+            throw new IllegalArgumentException("无效的发送者");
+        }
+
+        // 发送协作邀请WebSocket消息
+        webSocketHandler.sendCollaborationInvite(
+                collaborationRecord.getCreatorId(),
+                userId,
+                app.getId(),
+                app.getAppName(),
+                collaborationId
+        );
     }
 
     @Override

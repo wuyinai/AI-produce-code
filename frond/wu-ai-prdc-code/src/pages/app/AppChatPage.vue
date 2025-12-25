@@ -361,42 +361,7 @@
       </a-table>
     </a-modal>
 
-    <!-- 协作邀请通知 -->
-    <a-popover
-      v-if="collaborationInvites.length > 0"
-      v-model:open="invitePopoverVisible"
-      trigger="hover"
-      placement="bottomRight"
-      title="收到协作邀请"
-      @open-change="handleInvitePopoverOpenChange"
-    >
-      <template #content>
-        <div class="invite-list">
-          <div v-for="invite in collaborationInvites" :key="invite.id" class="invite-item">
-            <div class="invite-info">
-              <div class="invite-title">
-                <a-avatar :src="invite.senderAvatar || ''" size="small" />
-                <span class="sender-name">{{ invite.senderName || '未知用户' }}</span>
-              </div>
-              <div class="invite-content">邀请您协作开发：{{ invite.appName }}</div>
-            </div>
-            <div class="invite-actions">
-              <a-button type="primary" size="small" @click="acceptCollaborationInvite(invite)">
-                接受
-              </a-button>
-              <a-button size="small" @click="rejectCollaborationInvite(invite)"> 拒绝 </a-button>
-            </div>
-          </div>
-        </div>
-      </template>
-      <a-button type="primary" danger>
-        <template #icon>
-          <BellOutlined />
-        </template>
-        邀请
-        <a-badge :count="collaborationInvites.length" :overflow-count="99" />
-      </a-button>
-    </a-popover>
+
   </div>
 </template>
 
@@ -445,20 +410,7 @@ const router = useRouter()
 const loginUserStore = useLoginUserStore()
 const webSocketStore = useWebSocketStore()
 
-// 协作邀请相关状态
-const collaborationInvites = ref<
-  Array<{
-    id: string
-    senderId: number
-    senderName?: string
-    senderAvatar?: string
-    appId: number
-    appName: string
-    collaborationId: number
-    timestamp: number
-  }>
->([])
-const invitePopoverVisible = ref(false)
+
 
 // 应用信息
 const appInfo = ref<API.AppVO>()
@@ -777,72 +729,7 @@ const handleAddCollaborators = async (friendIds: number[]) => {
   }
 }
 
-// 处理邀请弹窗打开/关闭
-const handleInvitePopoverOpenChange = (open: boolean) => {
-  if (!open) {
-    // 弹窗关闭时，清空已处理的邀请
-    collaborationInvites.value = []
-  }
-}
 
-// 接受协作邀请
-const acceptCollaborationInvite = async (invite: any) => {
-  try {
-    // 调用API添加协作者
-    await request.post(`/collaboration/add/${invite.collaborationId}`, {
-      userId: loginUserStore.loginUser.id,
-    })
-    // 发送接受消息
-    sendCollaborationAccept(invite)
-    // 从邀请列表中移除
-    collaborationInvites.value = collaborationInvites.value.filter((i) => i.id !== invite.id)
-    // 跳转到协作应用页面
-    router.push(`/app/chat/${invite.appId}?view=1`)
-    message.success('接受协作邀请成功')
-  } catch (error) {
-    console.error('接受协作邀请失败：', error)
-    message.error('接受协作邀请失败，请重试')
-  }
-}
-
-// 拒绝协作邀请
-const rejectCollaborationInvite = async (invite: any) => {
-  try {
-    // 发送拒绝消息
-    sendCollaborationReject(invite)
-    // 从邀请列表中移除
-    collaborationInvites.value = collaborationInvites.value.filter((i) => i.id !== invite.id)
-    message.success('拒绝协作邀请成功')
-  } catch (error) {
-    console.error('拒绝协作邀请失败：', error)
-    message.error('拒绝协作邀请失败，请重试')
-  }
-}
-
-// 发送协作邀请接受消息
-const sendCollaborationAccept = (invite: any) => {
-  const message = JSON.stringify({
-    type: 'collaboration_accept',
-    senderId: invite.senderId,
-    receiverId: loginUserStore.loginUser.id,
-    collaborationId: invite.collaborationId,
-    timestamp: Date.now(),
-  })
-  webSocketService.send(message)
-}
-
-// 发送协作邀请拒绝消息
-const sendCollaborationReject = (invite: any) => {
-  const message = JSON.stringify({
-    type: 'collaboration_reject',
-    senderId: invite.senderId,
-    receiverId: loginUserStore.loginUser.id,
-    collaborationId: invite.collaborationId,
-    reason: '用户拒绝了您的协作邀请',
-    timestamp: Date.now(),
-  })
-  webSocketService.send(message)
-}
 
 // 加载对话历史
 const loadChatHistory = async (isLoadMore = false) => {
@@ -1778,52 +1665,5 @@ onUnmounted(() => {
   }
 }
 
-/* 协作邀请样式 */
-.invite-list {
-  max-height: 300px;
-  overflow-y: auto;
-}
 
-.invite-item {
-  padding: 12px;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.invite-item:last-child {
-  border-bottom: none;
-}
-
-.invite-info {
-  margin-bottom: 8px;
-}
-
-.invite-title {
-  display: flex;
-  align-items: center;
-  margin-bottom: 4px;
-}
-
-.sender-name {
-  margin-left: 8px;
-  font-weight: 500;
-}
-
-.invite-content {
-  font-size: 14px;
-  color: #666;
-  margin-left: 32px;
-}
-
-.invite-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.invite-actions .ant-btn {
-  padding: 2px 8px;
-  height: auto;
-  font-size: 12px;
-}
 </style>

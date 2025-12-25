@@ -1,7 +1,10 @@
 package com.wuyinai.wuaipdce.websocket;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.wuyinai.wuaipdce.mapper.CollaborationMemberMapper;
+import com.wuyinai.wuaipdce.model.entity.CollaborationMember;
 import com.wuyinai.wuaipdce.model.entity.User;
+import com.wuyinai.wuaipdce.service.CollaborationService;
 import com.wuyinai.wuaipdce.service.UserService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -12,6 +15,7 @@ import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -48,6 +52,9 @@ public class WebSocketHandler extends TextWebSocketHandler {
 
     @Resource
     private UserService userService;
+    
+    @Resource
+    private CollaborationService collaborationService;
 
     /**
      * 构造方法，初始化心跳检测
@@ -309,6 +316,17 @@ public class WebSocketHandler extends TextWebSocketHandler {
         // 解析消息数据
         Long senderId = ((Number) messageData.get("senderId")).longValue();
         Long collaborationId = ((Number) messageData.get("collaborationId")).longValue();
+        
+        // 添加用户为协作者
+        CollaborationMember collaborationMember = CollaborationMember.builder()
+                .collaborationId(collaborationId)
+                .userId(receiverId)
+                .joinTime(LocalDateTime.now())
+                .createTime(LocalDateTime.now())
+                .updateTime(LocalDateTime.now())
+                .isDelete(0)
+                .build();
+        collaborationService.save(collaborationMember);
         
         // 构建接受消息
         Map<String, Object> acceptMessage = new ConcurrentHashMap<>();
