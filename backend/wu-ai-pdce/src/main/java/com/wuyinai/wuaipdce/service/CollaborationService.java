@@ -95,4 +95,5 @@ public interface CollaborationService extends IService<CollaborationMember> {
      */
     List<User> getOnlineFriends(Long userId);
 
+    List<CollaborationMemberVO> getCollaboratorsByAppId(Long appId);
 }

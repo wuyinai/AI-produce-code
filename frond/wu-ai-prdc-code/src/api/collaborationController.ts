@@ -2,21 +2,7 @@
 /* eslint-disable */
 import request from '@/request'
 
-/** 开始协作 POST /collaboration/start/${param0} */
-export async function startCollaboration(
-  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
-  params: API.startCollaborationParams,
-  options?: { [key: string]: any }
-) {
-  const { appId: param0, ...queryParams } = params
-  return request<API.BaseResponseLong>(`/collaboration/start/${param0}`, {
-    method: 'POST',
-    params: { ...queryParams },
-    ...(options || {}),
-  })
-}
-
-/** 添加协作者 POST /collaboration/add/${param0} */
+/** 此处后端没有提供注释 POST /collaboration/add/${param0} */
 export async function addCollaborator(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
   params: API.addCollaboratorParams,
@@ -35,7 +21,24 @@ export async function addCollaborator(
   })
 }
 
-/** 退出协作 POST /collaboration/exit/${param0} */
+/** 此处后端没有提供注释 POST /collaboration/collaborators/by-app/${param0} */
+export async function getCollaboratorsByAppId(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.getCollaboratorsByAppIdParams,
+  options?: { [key: string]: any }
+) {
+  const { appId: param0, ...queryParams } = params
+  return request<API.BaseResponseListCollaborationMemberVO>(
+    `/collaboration/collaborators/by-app/${param0}`,
+    {
+      method: 'POST',
+      params: { ...queryParams },
+      ...(options || {}),
+    }
+  )
+}
+
+/** 此处后端没有提供注释 POST /collaboration/exit/${param0} */
 export async function exitCollaboration(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
   params: API.exitCollaborationParams,
@@ -49,7 +52,29 @@ export async function exitCollaboration(
   })
 }
 
-/** 获取协作记录 GET /collaboration/record/${param0} */
+/** 此处后端没有提供注释 GET /collaboration/members/${param0} */
+export async function getCollaborationMembers(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.getCollaborationMembersParams,
+  options?: { [key: string]: any }
+) {
+  const { collaborationId: param0, ...queryParams } = params
+  return request<API.BaseResponseListCollaborationMemberVO>(`/collaboration/members/${param0}`, {
+    method: 'GET',
+    params: { ...queryParams },
+    ...(options || {}),
+  })
+}
+
+/** 此处后端没有提供注释 GET /collaboration/online-friends */
+export async function getOnlineFriends(options?: { [key: string]: any }) {
+  return request<API.BaseResponseListUser>('/collaboration/online-friends', {
+    method: 'GET',
+    ...(options || {}),
+  })
+}
+
+/** 此处后端没有提供注释 GET /collaboration/record/${param0} */
 export async function getCollaborationRecord(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
   params: API.getCollaborationRecordParams,
@@ -63,7 +88,7 @@ export async function getCollaborationRecord(
   })
 }
 
-/** 根据应用ID获取协作记录 GET /collaboration/record/by-app/${param0} */
+/** 此处后端没有提供注释 GET /collaboration/record/by-app/${param0} */
 export async function getCollaborationRecordByAppId(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
   params: API.getCollaborationRecordByAppIdParams,
@@ -77,24 +102,15 @@ export async function getCollaborationRecordByAppId(
   })
 }
 
-/** 获取在线好友列表 GET /collaboration/online-friends */
-export async function getOnlineFriends(
+/** 此处后端没有提供注释 POST /collaboration/start/${param0} */
+export async function startCollaboration(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.startCollaborationParams,
   options?: { [key: string]: any }
 ) {
-  return request<API.BaseResponseUserVO[]>(`/collaboration/online-friends`, {
-    method: 'GET',
-    ...(options || {}),
-  })
-}
-
-/** 获取协作成员列表 GET /collaboration/members/${param0} */
-export async function getCollaborationMembers(
-  params: API.getCollaborationRecordParams,
-  options?: { [key: string]: any }
-) {
-  const { collaborationId: param0, ...queryParams } = params
-  return request<API.BaseResponseListCollaborationMember>(`/collaboration/members/${param0}`, {
-    method: 'GET',
+  const { appId: param0, ...queryParams } = params
+  return request<API.BaseResponseLong>(`/collaboration/start/${param0}`, {
+    method: 'POST',
     params: { ...queryParams },
     ...(options || {}),
   })

@@ -88,6 +88,15 @@ public class CollaborationController {
     }
 
     /**
+     * 根据应用ID获取协作用户
+     */
+    @PostMapping("/collaborators/by-app/{appId}")
+    public BaseResponse<List<CollaborationMemberVO>> getCollaboratorsByAppId(@PathVariable Long appId) {
+        List<CollaborationMemberVO> collaborationMembers = collaborationService.getCollaboratorsByAppId(appId);
+        return ResultUtils.success(collaborationMembers);
+    }
+
+    /**
      * 获取在线好友列表
      * @param request 请求对象
      * @return 在线好友列表

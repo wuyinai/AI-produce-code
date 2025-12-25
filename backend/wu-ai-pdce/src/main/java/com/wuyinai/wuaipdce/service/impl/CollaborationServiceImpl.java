@@ -9,7 +9,9 @@ import com.wuyinai.wuaipdce.service.CollaborationRecordService;
 import com.wuyinai.wuaipdce.service.CollaborationService;
 import com.wuyinai.wuaipdce.service.FriendService;
 import com.wuyinai.wuaipdce.service.UserService;
+import com.wuyinai.wuaipdce.service.AppService;
 import jakarta.annotation.Resource;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +35,10 @@ public class CollaborationServiceImpl extends ServiceImpl<CollaborationMemberMap
     @Resource
     private FriendService friendService;
 
+    @Resource
+    @Lazy
+    private AppService appService;
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long startCollaboration(Long appId, Long creatorId) {
@@ -47,7 +53,6 @@ public class CollaborationServiceImpl extends ServiceImpl<CollaborationMemberMap
         if (existingRecord != null) {
             return existingRecord.getId();
         }
-
         // 创建新的协作记录
         CollaborationRecord collaborationRecord = CollaborationRecord.builder()
                 .appId(appId)
@@ -69,7 +74,10 @@ public class CollaborationServiceImpl extends ServiceImpl<CollaborationMemberMap
                 .isDelete(0)
                 .build();
         this.save(collaborationMember);
-
+        //更新应用状态为：协作中
+        App app = appService.getById(appId);
+        app.setStatus("协作中");
+        appService.updateById(app);
         return collaborationRecord.getId();
     }
 
@@ -139,6 +147,10 @@ public class CollaborationServiceImpl extends ServiceImpl<CollaborationMemberMap
         // 移除所有协作者
         QueryWrapper queryWrapper = QueryWrapper.create()
                 .where("collaborationId = ?", collaborationId);
+        Long appId = collaborationRecord.getAppId();
+        App app = appService.getById(appId);
+        app.setStatus("开发中");
+        appService.updateById(app);
         this.remove(queryWrapper);
     }
 
@@ -153,6 +165,7 @@ public class CollaborationServiceImpl extends ServiceImpl<CollaborationMemberMap
                 .select()
                 .from("collaboration_record")
                 .where("appId = ?", appId)
+                .and("status = ?", "valid")
                 .and("isDelete = ?", 0);
         return collaborationRecordService.getOne(queryWrapper);
     }
@@ -256,6 +269,44 @@ public class CollaborationServiceImpl extends ServiceImpl<CollaborationMemberMap
                     .toList();
         }
         return onlineFriends;
+    }
+
+    @Override
+    public List<CollaborationMemberVO> getCollaboratorsByAppId(Long appId) {
+        QueryWrapper queryWrapper = QueryWrapper.create()
+                .select()
+                .from("collaboration_record")
+                .where("appId = ?", appId)
+                .and("status = ?", "valid")
+                .and("isDelete = ?", 0);
+        CollaborationRecord RecordValid = collaborationRecordService.getOne(queryWrapper);
+        if (RecordValid == null) {
+            return List.of();
+        }
+        QueryWrapper memberQuery = QueryWrapper.create()
+                .select()
+                .from("collaboration_member")
+                .where("collaborationId = ?", RecordValid.getId())
+                .and("isDelete = ?", 0);
+        List<CollaborationMember> collaborationMembers = this.list(memberQuery);
+        return collaborationMembers.stream()
+                .map(member -> {
+                    CollaborationMemberVO vo = new CollaborationMemberVO();
+                    vo.setId(member.getId());
+                    vo.setCollaborationId(member.getCollaborationId());
+                    vo.setUserId(member.getUserId());
+                    vo.setJoinTime(member.getJoinTime());
+                    vo.setCreateTime(member.getCreateTime());
+
+                    // 获取用户名
+                    User user = userService.getById(member.getUserId());
+                    if (user != null) {
+                        vo.setUserName(user.getUserName());
+                    }
+
+                    return vo;
+                })
+                .collect(java.util.stream.Collectors.toList());
     }
 
 }

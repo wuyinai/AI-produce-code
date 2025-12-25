@@ -3,6 +3,10 @@ declare namespace API {
     requestId: number
   }
 
+  type addCollaboratorParams = {
+    collaborationId: number
+  }
+
   type AppAddRequest = {
     initPrompt?: string
   }
@@ -72,9 +76,21 @@ declare namespace API {
     message?: string
   }
 
+  type BaseResponseCollaborationRecord = {
+    code?: number
+    data?: CollaborationRecord
+    message?: string
+  }
+
   type BaseResponseFriendVO = {
     code?: number
     data?: FriendVO
+    message?: string
+  }
+
+  type BaseResponseListCollaborationMemberVO = {
+    code?: number
+    data?: CollaborationMemberVO[]
     message?: string
   }
 
@@ -87,6 +103,12 @@ declare namespace API {
   type BaseResponseListFriendVO = {
     code?: number
     data?: FriendVO[]
+    message?: string
+  }
+
+  type BaseResponseListUser = {
+    code?: number
+    data?: User[]
     message?: string
   }
 
@@ -173,6 +195,29 @@ declare namespace API {
     message: string
   }
 
+  type CollaborationMemberVO = {
+    id?: number
+    collaborationId?: number
+    userId?: number
+    userName?: string
+    joinTime?: string
+    createTime?: string
+  }
+
+  type CollaborationRecord = {
+    id?: number
+    appId?: number
+    creatorId?: number
+    status?: string
+    createTime?: string
+    updateTime?: string
+    isDelete?: number
+  }
+
+  type CollaborationRequest = {
+    userId?: number
+  }
+
   type deleteFriendParams = {
     friendId: number
   }
@@ -188,6 +233,10 @@ declare namespace API {
   type EditedFile = {
     filePath?: string
     content?: string
+  }
+
+  type exitCollaborationParams = {
+    collaborationId: number
   }
 
   type FriendRequestDTO = {
@@ -209,7 +258,6 @@ declare namespace API {
 
   type FriendVO = {
     id?: number
-    userId?: number
     userName?: string
     userAvatar?: string
     userAccount?: string
@@ -225,6 +273,22 @@ declare namespace API {
 
   type getAppVOByIdParams = {
     id: number
+  }
+
+  type getCollaborationMembersParams = {
+    collaborationId: number
+  }
+
+  type getCollaborationRecordByAppIdParams = {
+    appId: number
+  }
+
+  type getCollaborationRecordParams = {
+    collaborationId: number
+  }
+
+  type getCollaboratorsByAppIdParams = {
+    appId: number
   }
 
   type getFriendDetailParams = {
@@ -252,6 +316,7 @@ declare namespace API {
     userAvatar?: string
     userProfile?: string
     userRole?: string
+    onlineStatus?: string
     createTime?: string
     updateTime?: string
   }
@@ -297,6 +362,10 @@ declare namespace API {
     deployKey: string
   }
 
+  type startCollaborationParams = {
+    appId: number
+  }
+
   type User = {
     id?: number
     userAccount?: string
@@ -305,11 +374,11 @@ declare namespace API {
     userAvatar?: string
     userProfile?: string
     userRole?: string
+    onlineStatus?: string
     editTime?: string
     createTime?: string
     updateTime?: string
     isDelete?: number
-    onlineStatus?: number
   }
 
   type UserAddRequest = {
@@ -358,84 +427,7 @@ declare namespace API {
     userAvatar?: string
     userProfile?: string
     userRole?: string
+    onlineStatus?: string
     createTime?: string
-  }
-
-  // 协作相关类型
-  type CollaborationRequest = {
-    userId?: number
-  }
-
-  type CollaborationRecord = {
-    id?: number
-    appId?: number
-    creatorId?: number
-    status?: string
-    createTime?: string
-    updateTime?: string
-    isDelete?: number
-  }
-
-  type CollaborationMember = {
-    id?: number
-    collaborationId?: number
-    userId?: number
-    userName?: string
-    joinTime?: string
-    createTime?: string
-    updateTime?: string
-    isDelete?: number
-  }
-
-  // 协作API参数类型
-  type startCollaborationParams = {
-    appId: number
-  }
-
-  type addCollaboratorParams = {
-    collaborationId: number
-  }
-
-  type exitCollaborationParams = {
-    collaborationId: number
-  }
-
-  type getCollaborationRecordParams = {
-    collaborationId: number
-  }
-
-  type getCollaborationRecordByAppIdParams = {
-    appId: number
-  }
-
-  // 协作API响应类型
-  type BaseResponseCollaborationRecord = {
-    code?: number
-    data?: CollaborationRecord
-    message?: string
-  }
-
-  type BaseResponseCollaborationMember = {
-    code?: number
-    data?: CollaborationMember
-    message?: string
-  }
-
-  type BaseResponseListCollaborationMember = {
-    code?: number
-    data?: CollaborationMember[]
-    message?: string
-  }
-
-  type BaseResponseListCollaborationRecord = {
-    code?: number
-    data?: CollaborationRecord[]
-    message?: string
-  }
-
-  type BaseResponseListUserVO = {
-    code?: number
-    data?: UserVO[]
-    message?: string
   }
 }

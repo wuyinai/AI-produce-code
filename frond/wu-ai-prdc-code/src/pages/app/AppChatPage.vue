@@ -414,7 +414,7 @@ import {
   saveDirectEdit,
 } from '@/api/appController'
 import { listAppChatHistory } from '@/api/chatHistoryController'
-import { getCollaborationMembers } from '@/api/collaborationController'
+import { getCollaborationMembers, getCollaboratorsByAppId } from '@/api/collaborationController'
 import { CodeGenTypeEnum, formatCodeGenType } from '@/utils/codeGenTypes'
 import request from '@/request'
 
@@ -880,6 +880,9 @@ const fetchAppInfo = async () => {
       ) {
         await sendInitialMessage(appInfo.value.initPrompt)
       }
+
+      // 检查是否存在协作记录
+      await checkCollaborationRecord()
     } else {
       message.error('获取应用信息失败')
       router.push('/')
@@ -888,6 +891,24 @@ const fetchAppInfo = async () => {
     console.error('获取应用信息失败：', error)
     message.error('获取应用信息失败')
     router.push('/')
+  }
+}
+
+// 检查是否存在协作记录
+const checkCollaborationRecord = async () => {
+  try {
+    const res = await import('@/api/collaborationController').then(module =>
+      module.getCollaborationRecordByAppId({ appId: appId.value as unknown as number })
+    )
+    if (res.data.code === 0 && res.data.data && res.data.data.id) {
+      // 存在协作记录，恢复协作状态
+      const record = res.data.data
+      isCollaborating.value = true
+      collaborationId.value = record.id || null
+    }
+  } catch (error) {
+    console.error('检查协作记录失败：', error)
+    // 检查失败不影响页面正常显示，仅记录日志
   }
 }
 
