@@ -99,7 +99,7 @@
             <div v-if="message.type === 'user'" class="user-message">
               <div class="message-content">{{ message.content }}</div>
               <div class="message-avatar">
-                <a-avatar :src="loginUserStore.loginUser.userAvatar" />
+                <a-avatar :src="message.userAvatar" />
               </div>
             </div>
             <div v-else class="ai-message">
@@ -407,14 +407,14 @@ import { message } from 'ant-design-vue'
 import { useLoginUserStore } from '@/stores/loginUser'
 import { useWebSocketStore } from '@/stores/websocket'
 import { webSocketService } from '@/utils/websocket'
-import {
-  getAppVoById,
+import { getAppVoById,
   deployApp as deployAppApi,
   deleteApp as deleteAppApi,
   saveDirectEdit,
 } from '@/api/appController'
 import { listAppChatHistory } from '@/api/chatHistoryController'
 import { getCollaborationMembers, getCollaboratorsByAppId } from '@/api/collaborationController'
+import { getUserVoById } from '@/api/userController'
 import { CodeGenTypeEnum, formatCodeGenType } from '@/utils/codeGenTypes'
 import request from '@/request'
 
@@ -470,12 +470,17 @@ interface Message {
   content: string
   loading?: boolean
   createTime?: string
+  userId?: number
+  userAvatar?: string
 }
 
 const messages = ref<Message[]>([]) // 消息列表
 const userInput = ref('')
 const isGenerating = ref(false)
 const messagesContainer = ref<HTMLElement>()
+
+// 用户信息缓存，用于存储已经查询过的用户信息
+const userInfoCache = ref<Map<number, API.UserVO>>(new Map())
 
 // 对话历史相关
 const loadingHistory = ref(false) // 加载状态
@@ -609,6 +614,33 @@ const isAdmin = computed(() => {
     isCollaborator.value
   )
 })
+
+// 获取用户信息，优先从缓存中获取，缓存中没有则调用API
+const getUserInfo = async (userId: number) => {
+  // 如果是当前登录用户，直接返回当前用户信息
+  if (userId === loginUserStore.loginUser.id) {
+    return loginUserStore.loginUser
+  }
+  
+  // 检查缓存中是否已有该用户信息
+  if (userInfoCache.value.has(userId)) {
+    return userInfoCache.value.get(userId)!
+  }
+  
+  try {
+    // 调用API获取用户信息
+    const res = await getUserVoById({ id: userId })
+    if (res.data.code === 0 && res.data.data) {
+      const userInfo = res.data.data
+      // 将用户信息存入缓存
+      userInfoCache.value.set(userId, userInfo)
+      return userInfo
+    }
+  } catch (error) {
+    console.error('获取用户信息失败：', error)
+  }
+  return null
+}
 
 // 应用详情相关
 const appDetailVisible = ref(false)
@@ -830,13 +862,37 @@ const loadChatHistory = async (isLoadMore = false) => {
       const chatHistories = res.data.data.records || []
       if (chatHistories.length > 0) {
         // 将对话历史转换为消息格式，并按时间正序排列（老消息在前）
-        const historyMessages: Message[] = chatHistories
-          .map((chat) => ({
-            type: (chat.messageType === 'user' ? 'user' : 'ai') as 'user' | 'ai',
+        const historyMessages: Message[] = []
+        for (const chat of chatHistories) {
+          const messageType = (chat.messageType === 'user' ? 'user' : 'ai') as 'user' | 'ai'
+          const message: Message = {
+            type: messageType,
             content: chat.message || '',
             createTime: chat.createTime,
-          }))
-          .reverse() // 反转数组，让老消息在前
+            userId: chat.userId,
+            userAvatar: undefined
+          }
+          
+          // 如果是用户消息，获取用户头像
+          if (messageType === 'user') {
+            // 如果是当前登录用户，直接使用当前用户头像
+            if (chat.userId === loginUserStore.loginUser.id) {
+              message.userAvatar = loginUserStore.loginUser.userAvatar
+            } else {
+              // 否则，调用API获取用户头像
+              const userInfo = await getUserInfo(chat.userId!)
+              if (userInfo) {
+                message.userAvatar = userInfo.userAvatar
+              }
+            }
+          }
+          
+          historyMessages.push(message)
+        }
+        
+        // 反转数组，让老消息在前
+        historyMessages.reverse()
+        
         if (isLoadMore) {
           // 加载更多时，将历史消息添加到开头
           messages.value.unshift(...historyMessages)
@@ -954,6 +1010,8 @@ const sendInitialMessage = async (prompt: string) => {
   messages.value.push({
     type: 'user',
     content: prompt,
+    userId: loginUserStore.loginUser.id,
+    userAvatar: loginUserStore.loginUser.userAvatar
   })
 
   // 添加AI消息占位符
@@ -996,6 +1054,8 @@ const sendMessage = async () => {
   messages.value.push({
     type: 'user',
     content: message,
+    userId: loginUserStore.loginUser.id,
+    userAvatar: loginUserStore.loginUser.userAvatar
   })
 
   // 发送消息后，清除选中元素并退出编辑模式

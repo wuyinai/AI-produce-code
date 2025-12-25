@@ -598,7 +598,14 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         
         // 2. 验证用户是否有权限访问该应用
         if (!app.getUserId().equals(loginUser.getId())) {
-            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+            //判断应用是否存在有效协作记录
+            CollaborationRecord collaborationRecords = collaborationService.getCollaborationRecordByAppId(appId);
+            if (collaborationRecords != null) {
+                List<Long> userIds = collaborationService.getCollaboratorsByCollaborationId(collaborationRecords.getId());
+                if (!userIds.contains(loginUser.getId())){
+                    throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+                }
+            }
         }
         
         // 3. 构建应用代码目录路径（生成目录，非部署目录）
