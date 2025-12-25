@@ -309,4 +309,14 @@ public class CollaborationServiceImpl extends ServiceImpl<CollaborationMemberMap
                 .collect(java.util.stream.Collectors.toList());
     }
 
+    @Override
+    public List<Long> getCollaboratorsByCollaborationId(Long collaborationId) {
+        QueryWrapper queryWrapper = QueryWrapper.create()
+                .select("userId")
+                .from("collaboration_member")
+                .where("collaborationId = ?", collaborationId)
+                .and("isDelete = ?", 0);
+        return this.listAs(queryWrapper, Long.class);
+    }
+
 }

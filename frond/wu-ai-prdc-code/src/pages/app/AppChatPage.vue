@@ -10,7 +10,7 @@
       </div>
       <div class="header-right">
         <!-- 协作相关按钮 -->
-        <template v-if="isOwner">
+        <template v-if="isCreator">
           <a-button
             v-if="!isCollaborating"
             type="primary"
@@ -74,7 +74,7 @@
           </template>
           下载代码
         </a-button>
-        <a-button type="primary" @click="deployApp" :loading="deploying">
+        <a-button type="primary" @click="deployApp" :loading="deploying" v-if="isCreator">
           <template #icon>
             <CloudUploadOutlined />
           </template>
@@ -583,11 +583,31 @@ const saveDirectEditContent = async () => {
 
 // 权限相关
 const isOwner = computed(() => {
+  console.log("真假===",isCollaborator.value)
+  return appInfo.value?.userId === loginUserStore.loginUser.id || isCollaborator.value
+})
+
+const isCreator = computed(() => {
   return appInfo.value?.userId === loginUserStore.loginUser.id
 })
 
+// 协作者列表 - 用于判断当前用户是否为协作者
+const collaboratorsByApp = ref<API.CollaborationMember[]>([])
+
+// 检查当前用户是否为协作者
+const isCollaborator = computed(() => {
+  return collaboratorsByApp.value.some(
+    collaborator => collaborator.userId === loginUserStore.loginUser.id
+  )
+})
+
+// 更新isAdmin逻辑：包含管理员、应用创建者、协作者
 const isAdmin = computed(() => {
-  return loginUserStore.loginUser.userRole === 'admin'
+  return (
+    loginUserStore.loginUser.userRole === 'admin' ||
+    isOwner.value ||
+    isCollaborator.value
+  )
 })
 
 // 应用详情相关
@@ -861,7 +881,8 @@ const fetchAppInfo = async () => {
     const res = await getAppVoById({ id: id as unknown as number })
     if (res.data.code === 0 && res.data.data) {
       appInfo.value = res.data.data
-
+      // 查询应用的协作者列表
+      await fetchCollaboratorsByAppId()
       // 先加载对话历史
       await loadChatHistory()
       // 检查URL参数，如果有view=1，则直接展示预览
@@ -891,6 +912,21 @@ const fetchAppInfo = async () => {
     console.error('获取应用信息失败：', error)
     message.error('获取应用信息失败')
     router.push('/')
+  }
+}
+
+// 根据应用ID获取协作者列表
+const fetchCollaboratorsByAppId = async () => {
+  if (!appId.value) return
+
+  try {
+    const res = await getCollaboratorsByAppId({ appId: appId.value as unknown as number })
+    if (res.data.code === 0 && res.data.data) {
+      collaboratorsByApp.value = res.data.data
+    }
+  } catch (error) {
+    console.error('获取协作者列表失败：', error)
+    // 获取协作者列表失败不影响页面正常显示，仅记录日志
   }
 }
 
@@ -994,7 +1030,6 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
   try {
     // 获取 axios 配置的 baseURL
     const baseURL = request.defaults.baseURL || API_BASE_URL
-
     // 构建URL参数
     const params = new URLSearchParams({
       appId: String(appId.value || ''),

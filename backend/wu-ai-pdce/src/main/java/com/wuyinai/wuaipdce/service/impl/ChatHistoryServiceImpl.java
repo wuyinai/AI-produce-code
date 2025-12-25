@@ -12,10 +12,12 @@ import com.wuyinai.wuaipdce.mapper.ChatHistoryMapper;
 import com.wuyinai.wuaipdce.model.dto.chathistory.ChatHistoryQueryRequest;
 import com.wuyinai.wuaipdce.model.entity.App;
 import com.wuyinai.wuaipdce.model.entity.ChatHistory;
+import com.wuyinai.wuaipdce.model.entity.CollaborationRecord;
 import com.wuyinai.wuaipdce.model.entity.User;
 import com.wuyinai.wuaipdce.model.enums.ChatHistoryMessageTypeEnum;
 import com.wuyinai.wuaipdce.service.AppService;
 import com.wuyinai.wuaipdce.service.ChatHistoryService;
+import com.wuyinai.wuaipdce.service.CollaborationService;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
@@ -41,6 +43,8 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
     @Lazy//它通过延迟加载解决了循环依赖问题
     private AppService appService;
 
+    @Autowired
+    private CollaborationService collaborationService;
     /**
      * 添加对话历史
      *
@@ -147,6 +151,14 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
         ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
         boolean isAdmin = UserConstant.ADMIN_ROLE.equals(loginUser.getUserRole());
         boolean isCreator = app.getUserId().equals(loginUser.getId());
+        //同时判断用户是否是协作者，如果是协作者再将isCreator值改为真
+        CollaborationRecord collaborationRecords = collaborationService.getCollaborationRecordByAppId(appId);
+        if (collaborationRecords != null) {
+            List<Long> userIds = collaborationService.getCollaboratorsByCollaborationId(collaborationRecords.getId());
+            isCreator = userIds.contains(loginUser.getId());
+        }
+
+        
         ThrowUtils.throwIf(!isAdmin && !isCreator, ErrorCode.NO_AUTH_ERROR, "无权限操作");
         //构建查询条件
         ChatHistoryQueryRequest chatHistoryQueryRequest = new ChatHistoryQueryRequest();

@@ -96,4 +96,9 @@ public interface CollaborationService extends IService<CollaborationMember> {
     List<User> getOnlineFriends(Long userId);
 
     List<CollaborationMemberVO> getCollaboratorsByAppId(Long appId);
+
+    /**
+     * 根据记录id查询出所有用户id
+     */
+    List<Long> getCollaboratorsByCollaborationId(Long collaborationId);
 }
