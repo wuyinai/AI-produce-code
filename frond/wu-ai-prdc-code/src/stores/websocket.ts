@@ -92,6 +92,7 @@ export const useWebSocketStore = defineStore('websocket', () => {
       if (event instanceof MessageEvent) {
         try {
           const messageData = JSON.parse(event.data)
+          console.log('收到WebSocket消息========:', messageData)
           const messageType = messageData.type
 
           // 处理心跳消息
@@ -123,16 +124,18 @@ export const useWebSocketStore = defineStore('websocket', () => {
 
   // 处理协作邀请
   function handleCollaborationInvite(messageData: any) {
+
     const invite = {
       id: `${messageData.senderId}-${messageData.timestamp}`,
       senderId: messageData.senderId,
       appId: messageData.appId,
       appName: messageData.appName,
       collaborationId: messageData.collaborationId,
+      userName: messageData.userName,
+      senderAvatar: messageData.senderAvatar,
       timestamp: messageData.timestamp
     }
     collaborationInvites.value.push(invite)
-    console.log('收到协作邀请:', invite)
   }
 
   // 处理协作邀请接受

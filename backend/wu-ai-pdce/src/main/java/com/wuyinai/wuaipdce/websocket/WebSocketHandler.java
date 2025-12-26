@@ -152,7 +152,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
             }
             // 处理协作邀请接受消息
             else if ("collaboration_accept".equals(type)) {
-                handleCollaborationAccept(messageData, userId);
+                handleCollaborationAccept(messageData, String.valueOf(userId));
             }
             // 处理协作邀请拒绝消息
             else if ("collaboration_reject".equals(type)) {
@@ -241,40 +241,6 @@ public class WebSocketHandler extends TextWebSocketHandler {
     }
 
     /**
-     * 向指定用户发送消息
-     * 
-     * @param userId 用户ID
-     * @param message 消息内容
-     */
-    public void sendMessageToUser(Long userId, String message) {
-        WebSocketSession session = ONLINE_USERS.get(userId);
-        if (session != null && session.isOpen()) {
-            try {
-                session.sendMessage(new TextMessage(message));
-            } catch (IOException e) {
-                log.error("向用户 {} 发送消息失败：{}", userId, e.getMessage());
-            }
-        }
-    }
-
-    /**
-     * 向所有在线用户发送消息
-     * 
-     * @param message 消息内容
-     */
-    public void sendMessageToAllUsers(String message) {
-        for (WebSocketSession session : ONLINE_USERS.values()) {
-            if (session.isOpen()) {
-                try {
-                    session.sendMessage(new TextMessage(message));
-                } catch (IOException e) {
-                    log.error("向用户发送消息失败：{}", e.getMessage());
-                }
-            }
-        }
-    }
-
-    /**
      * 处理协作邀请消息
      * 
      * @param messageData 消息数据
@@ -312,15 +278,15 @@ public class WebSocketHandler extends TextWebSocketHandler {
      * @param messageData 消息数据
      * @param receiverId 接收者ID
      */
-    private void handleCollaborationAccept(Map<String, Object> messageData, Long receiverId) throws IOException {
+    private void handleCollaborationAccept(Map<String, Object> messageData, String receiverId) throws IOException {
         // 解析消息数据
-        Long senderId = ((Number) messageData.get("senderId")).longValue();
-        Long collaborationId = ((Number) messageData.get("collaborationId")).longValue();
+        Long senderId = Long.valueOf(messageData.get("senderId").toString());
+        Long collaborationId = Long.valueOf(messageData.get("collaborationId").toString());
         
         // 添加用户为协作者
         CollaborationMember collaborationMember = CollaborationMember.builder()
                 .collaborationId(collaborationId)
-                .userId(receiverId)
+                .userId(Long.valueOf(receiverId))
                 .joinTime(LocalDateTime.now())
                 .createTime(LocalDateTime.now())
                 .updateTime(LocalDateTime.now())
@@ -386,15 +352,17 @@ public class WebSocketHandler extends TextWebSocketHandler {
      * @param appName 应用名称
      * @param collaborationId 协作记录ID
      */
-    public void sendCollaborationInvite(Long senderId, Long receiverId, Long appId, String appName, Long collaborationId) {
+    public void sendCollaborationInvite(Long senderId, Long receiverId,String userName, Long appId, String appName, Long collaborationId,String userAvatar) {
         try {
             // 构建邀请消息
             Map<String, Object> inviteMessage = new ConcurrentHashMap<>();
             inviteMessage.put("type", "collaboration_invite");
-            inviteMessage.put("senderId", senderId);
-            inviteMessage.put("appId", appId);
+            inviteMessage.put("senderId", String.valueOf(senderId));
+            inviteMessage.put("appId", String.valueOf(appId));
             inviteMessage.put("appName", appName);
-            inviteMessage.put("collaborationId", collaborationId);
+            inviteMessage.put("collaborationId", String.valueOf(collaborationId));
+            inviteMessage.put("userName", userName);
+            inviteMessage.put("senderAvatar",userAvatar);
             inviteMessage.put("timestamp", System.currentTimeMillis());
             
             // 发送邀请消息给接收者

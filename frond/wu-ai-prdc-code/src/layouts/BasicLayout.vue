@@ -8,7 +8,7 @@
     </a-layout-content>
     <!-- 底部版权信息 -->
     <GlobalFooter />
-    
+
     <!-- 全局协作邀请弹窗 -->
     <div v-if="showInviteModal" class="invite-modal-overlay">
       <div class="invite-modal-content">
@@ -23,7 +23,7 @@
             <a-avatar :src="currentInvite?.senderAvatar || ''" size="large" class="sender-avatar" />
             <div class="invite-details">
               <p class="invite-title">
-                <span class="sender-name">{{ currentInvite?.senderName || '未知用户' }}</span>
+                <span class="sender-name">{{ currentInvite?.userName || '未知用户' }}</span>
                 邀请您协作开发
               </p>
               <p class="app-name">{{ currentInvite?.appName || '' }}</p>
@@ -82,11 +82,16 @@ const handleCloseModal = () => {
 // 接受邀请
 const handleAcceptInvite = async () => {
   if (!currentInvite.value) return
-  
+
+  // 保存邀请ID，防止在调用过程中currentInvite变为null
+  const inviteId = currentInvite.value.id
+  console.log('接受邀请ID====：', inviteId)
+  console.log('接受邀请====：', currentInvite.value)
+
   isProcessingInvite.value = true
   try {
     // 调用WebSocket store的接受邀请方法
-    webSocketStore.acceptCollaborationInvite(currentInvite.value.id)
+    webSocketStore.acceptCollaborationInvite(inviteId)
     // 跳转到协作应用页面
     router.push(`/app/chat/${currentInvite.value.appId}?view=1`)
     message.success('接受协作邀请成功')
@@ -102,11 +107,13 @@ const handleAcceptInvite = async () => {
 // 拒绝邀请
 const handleRejectInvite = async () => {
   if (!currentInvite.value) return
-  
+
+  // 保存邀请ID，防止在调用过程中currentInvite变为null
+  const inviteId = currentInvite.value.id
   isProcessingInvite.value = true
   try {
     // 调用WebSocket store的拒绝邀请方法
-    webSocketStore.rejectCollaborationInvite(currentInvite.value.id)
+    webSocketStore.rejectCollaborationInvite(inviteId)
     message.success('拒绝协作邀请成功')
     handleCloseModal()
   } catch (error) {

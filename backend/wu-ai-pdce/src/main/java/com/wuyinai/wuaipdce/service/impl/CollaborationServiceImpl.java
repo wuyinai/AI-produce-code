@@ -123,9 +123,11 @@ public class CollaborationServiceImpl extends ServiceImpl<CollaborationMemberMap
         webSocketHandler.sendCollaborationInvite(
                 collaborationRecord.getCreatorId(),
                 userId,
+                sender.getUserName(),
                 app.getId(),
                 app.getAppName(),
-                collaborationId
+                collaborationId,
+                sender.getUserAvatar()
         );
     }
 
