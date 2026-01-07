@@ -112,23 +112,8 @@ const originItems = [
   },
   {
     key: '/super-intelligence',
-    label: '超级智能',
-    title: '超级智能',
-  },
-  {
-    key: 'demand-generation',
-    label: '需求生成',
-    title: '需求生成',
-  },
-  {
-    key: 'backend-code',
-    label: '后端代码生成',
-    title: '后端代码生成',
-  },
-  {
-    key: 'ppt-generation',
-    label: 'PPT生成',
-    title: 'PPT生成',
+    label: '全栈生成',
+    title: '全栈生成',
   },
 ]
 

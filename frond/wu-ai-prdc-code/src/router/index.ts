@@ -66,7 +66,7 @@ const router = createRouter({
     },
     {
       path: '/super-intelligence',
-      name: '超级智能',
+      name: '全栈生成',
       component: SuperIntelligencePage,
     },
   ],

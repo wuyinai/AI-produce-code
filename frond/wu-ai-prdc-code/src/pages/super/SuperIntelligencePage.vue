@@ -60,7 +60,7 @@
               <div class="welcome-icon">
                 <span>🚀</span>
               </div>
-              <h2 class="welcome-title">欢迎使用超级智能</h2>
+              <h2 class="welcome-title">欢迎使用全栈生成</h2>
               <p class="welcome-description">
                 选择左侧菜单栏中的功能，开始体验 AI 驱动的智能服务
               </p>
