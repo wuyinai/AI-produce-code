@@ -94,3 +94,20 @@ create table collaboration_member
     INDEX idx_collaborationId (collaborationId),
     INDEX idx_userId (userId)
 ) comment '协作成员' collate = utf8mb4_unicode_ci;
+
+-- 全栈AI智能的数据库设计表
+-- 数据库设计项目表
+CREATE TABLE IF NOT EXISTS `db_design_project` (
+                                                   `id` BIGINT NOT NULL COMMENT '项目ID（雪花算法）',
+                                                   `project_name` VARCHAR(100) NOT NULL COMMENT '项目名称',
+    `db_type` VARCHAR(20) NOT NULL COMMENT '数据库类型（mysql/postgresql/sqlserver/oracle）',
+    `design_data` LONGTEXT NOT NULL COMMENT '设计数据JSON（包含表、字段、关系、位置）',
+    `description` VARCHAR(500) DEFAULT NULL COMMENT '项目描述',
+    `user_id` BIGINT NOT NULL COMMENT '创建用户ID',
+    `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `is_delete` TINYINT NOT NULL DEFAULT 0 COMMENT '是否删除（0-否 1-是）',
+    PRIMARY KEY (`id`),
+    KEY `idx_user_id` (`user_id`),
+    KEY `idx_db_type` (`db_type`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='数据库设计项目表';

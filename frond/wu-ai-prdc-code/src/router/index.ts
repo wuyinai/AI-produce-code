@@ -9,6 +9,7 @@ import AppEditPage from '@/pages/app/AppEditPage.vue'
 import ChatManagePage from '@/pages/admin/ChatManagePage.vue'
 import UserProfilePage from '@/pages/user/UserProfilePage.vue'
 import UserFriendsPage from '@/pages/user/UserFriendsPage.vue'
+import SuperIntelligencePage from '@/pages/super/SuperIntelligencePage.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -62,6 +63,11 @@ const router = createRouter({
       path: '/user/friends',
       name: '我的好友',
       component: UserFriendsPage,
+    },
+    {
+      path: '/super-intelligence',
+      name: '超级智能',
+      component: SuperIntelligencePage,
     },
   ],
 })

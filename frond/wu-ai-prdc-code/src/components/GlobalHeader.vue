@@ -111,8 +111,8 @@ const originItems = [
     title: '对话管理',
   },
   {
-    key: 'super-intelligence',
-    label: h('a', { href: 'https://github.com/wuyinai', target: '_blank' }, '超级智能'),
+    key: '/super-intelligence',
+    label: '超级智能',
     title: '超级智能',
   },
   {
