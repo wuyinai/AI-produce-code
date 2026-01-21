@@ -17,7 +17,7 @@
           </div>
           <transition name="fade">
             <div v-if="!isCollapsed" class="header-info">
-              <h3 class="ai-title">超级智能</h3>
+              <h3 class="ai-title">全栈生成</h3>
               <p class="ai-subtitle">AI 驱动的智能助手</p>
             </div>
           </transition>
@@ -140,8 +140,8 @@ const menuItems = computed<MenuProps['items']>(() => [
   {
     key: 'ai-chat',
     icon: () => h(BulbOutlined),
-    label: 'AI 对话',
-    title: 'AI 对话',
+    label: '数据库生成',
+    title: '数据库生成',
   },
   {
     key: 'requirement',

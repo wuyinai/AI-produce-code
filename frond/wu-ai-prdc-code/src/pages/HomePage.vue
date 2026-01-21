@@ -8,7 +8,7 @@
             <span class="badge-icon">✨</span>
             <span class="badge-text">AI驱动的零代码平台</span>
           </div>
-          <h1 class="hero-title">AI代码生成平台</h1>
+          <h1 class="hero-title">AI融合的软件开发平台设计与实现</h1>
           <p class="hero-description">一句话轻松创建完整网站应用，让创意瞬间变为现实</p>
           <div class="hero-stats">
             <div class="stat-item">
