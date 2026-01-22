@@ -214,25 +214,39 @@ public class WebSocketHandler extends TextWebSocketHandler {
         }
     }
 
-    //发送协作用户发送给的消息
+    //发送协作用户的用户消息
     public void handleCollaborationMessage(String message, List<Long> userIds, Long appId, UserVO sender) {
         try{
-            log.info("协作消息{}", message);
+            log.info("发送协作消息给协作者, message: {}, userIds: {}, appId: {}", message, userIds, appId);
             //构建消息
             Map<Object, Object> collaborationMessage = new ConcurrentHashMap<>();
             collaborationMessage.put("type", "collaboration_message");
             collaborationMessage.put("message", message);
+            //清空sender中的创建时间和修改时间
+            sender.setCreateTime(null);
             collaborationMessage.put("user",sender);
             collaborationMessage.put("appId", appId);
+
+            if (userIds == null || userIds.isEmpty()) {
+                log.warn("协作者列表为空，不发送消息");
+                return;
+            }
 
             //发送消息给协作者们
             for (Long userId : userIds) {
                 WebSocketSession session = ONLINE_USERS.get(userId);
-                if (session != null && session.isOpen()) {
-                    session.sendMessage(new TextMessage(OBJECT_MAPPER.writeValueAsString(collaborationMessage)));
+                if (session == null) {
+                    log.warn("协作者 {} 不在线", userId);
+                    continue;
                 }
+                if (!session.isOpen()) {
+                    log.warn("协作者 {} 的会话已关闭", userId);
+                    continue;
+                }
+                session.sendMessage(new TextMessage(OBJECT_MAPPER.writeValueAsString(collaborationMessage)));
+                log.info("向协作者 {} 发送协作消息成功", userId);
             }
-        }catch (IOException e){
+        }catch (Exception e){
             log.error("发送协作消息失败：{}", e.getMessage(), e);
         }
     }

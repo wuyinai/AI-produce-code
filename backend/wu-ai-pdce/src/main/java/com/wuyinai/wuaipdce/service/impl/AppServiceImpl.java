@@ -424,11 +424,12 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         if (!app.getUserId().equals(loginUser.getId())) {
             //判断应用是否存在有效协作记录
             CollaborationRecord collaborationRecords = collaborationService.getCollaborationRecordByAppId(appId);
-            if (collaborationRecords != null) {
-                List<Long> userIds = collaborationService.getCollaboratorsByCollaborationId(collaborationRecords.getId());
-                if (!userIds.contains(loginUser.getId())){
-                    throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
-                }
+            if (collaborationRecords == null) {
+                throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限访问该应用");
+            }
+            List<Long> userIds = collaborationService.getCollaboratorsByCollaborationId(collaborationRecords.getId());
+            if (!userIds.contains(loginUser.getId())){
+                throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限访问该应用");
             }
         }
         //获取应用的代码类型

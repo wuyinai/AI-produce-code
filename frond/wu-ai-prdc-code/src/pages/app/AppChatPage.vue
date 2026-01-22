@@ -582,12 +582,12 @@ const getUserInfo = async (userId: number) => {
   if (userId === loginUserStore.loginUser.id) {
     return loginUserStore.loginUser
   }
-  
+
   // 检查缓存中是否已有该用户信息
   if (userInfoCache.value.has(userId)) {
     return userInfoCache.value.get(userId)!
   }
-  
+
   try {
     // 调用API获取用户信息
     const res = await getUserVoById({ id: userId })
@@ -768,7 +768,7 @@ const loadChatHistory = async (isLoadMore = false) => {
             userId: chat.userId,
             userAvatar: undefined
           }
-          
+
           // 如果是用户消息，获取用户头像
           if (messageType === 'user') {
             // 如果是当前登录用户，直接使用当前用户头像
@@ -782,13 +782,13 @@ const loadChatHistory = async (isLoadMore = false) => {
               }
             }
           }
-          
+
           historyMessages.push(message)
         }
-        
+
         // 反转数组，让老消息在前
         historyMessages.reverse()
-        
+
         if (isLoadMore) {
           // 加载更多时，将历史消息添加到开头
           messages.value.unshift(...historyMessages)
@@ -1303,7 +1303,7 @@ onMounted(async () => {
   })
 
   // 监听协作用户消息（协作者实时消息）
-  window.addEventListener('collaboration-message', async (event: Event) => {
+  window.addEventListener('collaboration_message', async (event: Event) => {
     const data = (event as CustomEvent).detail
     // 检查是否是当前应用的消息
     if (data.appId && Number(data.appId) === Number(appId.value)) {

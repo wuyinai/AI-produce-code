@@ -136,10 +136,7 @@ export const useWebSocketStore = defineStore('websocket', () => {
 
   // 处理协作用户消息
   function handleCollaborationMessage(messageData: any) {
-    console.log('收到协作用户消息:', messageData)
-    console.log('消息中的appId:', messageData.appId, '类型:', typeof messageData.appId)
-    console.log('发送者信息:', messageData.user)
-    const event = new CustomEvent('collaboration-message', {
+    const event = new CustomEvent('collaboration_message', {
       detail: {
         message: messageData.message,
         appId: messageData.appId,

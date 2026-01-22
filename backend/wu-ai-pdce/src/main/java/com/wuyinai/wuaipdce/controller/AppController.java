@@ -246,7 +246,6 @@ public class AppController {
         //获取登录的用户信息
         User loginUser = userService.getLoginUser(request);
         List<Long> userIds = appService.getCollaborators(appId, loginUser.getId());
-//        return appService.chatToGenCode(appId, message, loginUser);
 
         // 生成唯一的会话ID，用于前端合并流式消息
         String sessionId = String.valueOf(System.currentTimeMillis()) + "_" + loginUser.getId();
