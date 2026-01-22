@@ -123,4 +123,6 @@ public interface AppService extends IService<App> {
      * @param loginUser 登录用户
      */
     void saveDirectEdit(AppSaveDirectEditRequest appSaveDirectEditRequest, User loginUser);
+
+    List<Long> getCollaborators(Long appId, Long userId);
 }

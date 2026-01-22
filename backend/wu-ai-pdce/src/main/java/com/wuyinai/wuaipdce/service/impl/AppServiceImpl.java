@@ -35,10 +35,12 @@ import com.wuyinai.wuaipdce.service.ChatHistoryService;
 import com.wuyinai.wuaipdce.service.CollaborationService;
 import com.wuyinai.wuaipdce.service.ScreenshotService;
 import com.wuyinai.wuaipdce.service.UserService;
+import com.wuyinai.wuaipdce.websocket.WebSocketHandler;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
@@ -81,6 +83,11 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     
     @Resource
     private CollaborationService collaborationService;
+
+    @Resource
+    @Lazy
+    private WebSocketHandler webSocketHandler;
+
     /**
      * 添加上脱敏用户信息
      *
@@ -433,7 +440,12 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         }
         //新增：调用对话历史保存方法
         chatHistoryService.addChatMessage(appId, message, ChatHistoryMessageTypeEnum.USER.getValue(), loginUser.getId());
-
+        //发送用户消息给其他协作者
+        List<Long> collaborators = this.getCollaborators(appId, loginUser.getId());
+        //将用户信息同步给其他用户
+        //脱敏后的用户信息
+        UserVO userVO = userService.getUserVO(loginUser);
+        webSocketHandler.handleCollaborationMessage(message, collaborators,appId,userVO);
         //修改：调用门面方法调用AI生成代码
         Flux<String> contentFlux = aiCodeGeneratorFacade.generateAndSaveCodeStreaming(message, codeGenTypeEnum, appId);
 
@@ -646,6 +658,26 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         updateApp.setEditTime(LocalDateTime.now());
         boolean updated = this.updateById(updateApp);
         ThrowUtils.throwIf(!updated, ErrorCode.OPERATION_ERROR, "更新应用编辑时间失败");
+    }
+
+    /**
+     * 查询当前应用的协作者，并排除自己
+     */
+    @Override
+    public List<Long> getCollaborators(Long appId, Long userId) {
+        //根据应用ID查询出所有的用户信息，在去除当前登录用户。
+        //先判断当前应用是否有有效的协作记录
+        CollaborationRecord collaborationRecordByAppId = collaborationService.getCollaborationRecordByAppId(appId);
+        List<Long> userIds;
+        //TODO 待优化，检测当前协作者是否在线。
+        if ( collaborationRecordByAppId != null){
+            //获取当前协作记录的所有用户id
+            userIds = collaborationService.getCollaboratorsByCollaborationId(collaborationRecordByAppId.getId());
+            userIds.remove(userId);
+        } else {
+            userIds = new ArrayList<>();
+        }
+        return userIds;
     }
 
 }

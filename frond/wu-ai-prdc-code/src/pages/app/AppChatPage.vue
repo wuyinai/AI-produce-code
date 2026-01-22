@@ -424,6 +424,7 @@ interface Message {
   createTime?: string
   userId?: number
   userAvatar?: string
+  sessionId?: string  // 用于关联流式消息
 }
 
 const messages = ref<Message[]>([]) // 消息列表
@@ -433,6 +434,14 @@ const messagesContainer = ref<HTMLElement>()
 
 // 用户信息缓存，用于存储已经查询过的用户信息
 const userInfoCache = ref<Map<number, API.UserVO>>(new Map())
+
+// 跟踪正在进行的AI流式会话，用于合并消息
+const streamingSessions = ref<Map<string, {
+  messageIndex: number
+  accumulatedContent: string
+  senderId?: number
+  senderName?: string
+}>>(new Map())
 
 // 对话历史相关
 const loadingHistory = ref(false) // 加载状态
@@ -945,6 +954,11 @@ const sendMessage = async () => {
     userAvatar: loginUserStore.loginUser.userAvatar
   })
 
+  // 广播消息给协作者
+  if (appId.value) {
+    webSocketStore.sendCollaborationMessage(message, Number(appId.value))
+  }
+
   // 发送消息后，清除选中元素并退出编辑模式
   if (selectedElementInfo.value) {
     clearSelectedElement()
@@ -1252,17 +1266,181 @@ const getInputPlaceholder = () => {
 }
 
 // 页面加载时获取应用信息
-onMounted(() => {
-  fetchAppInfo()
+onMounted(async () => {
+  await fetchAppInfo()
 
   // 监听 iframe 消息
   window.addEventListener('message', (event) => {
     visualEditor.handleIframeMessage(event)
   })
+
+  // 监听AI流式回答消息（分块，用于合并显示）
+  window.addEventListener('ai-answer-stream', async (event: Event) => {
+    const data = (event as CustomEvent).detail
+    // 检查是否是当前应用的消息
+    if (data.appId && Number(data.appId) === Number(appId.value)) {
+      await handleAiStreamChunk(data)
+    }
+  })
+
+  // 监听AI流式回答结束消息（显示完整内容）
+  window.addEventListener('ai-answer-stream-end', async (event: Event) => {
+    const data = (event as CustomEvent).detail
+    // 检查是否是当前应用的消息
+    if (data.appId && Number(data.appId) === Number(appId.value)) {
+      await handleAiStreamEnd(data)
+    }
+  })
+
+  // 兼容旧版AI回答共享消息（单条消息）
+  window.addEventListener('ai-answer-share', async (event: Event) => {
+    const data = (event as CustomEvent).detail
+    // 检查是否是当前应用的消息
+    if (data.appId && Number(data.appId) === Number(appId.value)) {
+      // 添加AI消息
+      await addRealTimeAiMessage(data.message, data.senderId, data.senderName)
+    }
+  })
+
+  // 监听协作用户消息（协作者实时消息）
+  window.addEventListener('collaboration-message', async (event: Event) => {
+    const data = (event as CustomEvent).detail
+    // 检查是否是当前应用的消息
+    if (data.appId && Number(data.appId) === Number(appId.value)) {
+      // 直接使用后端发送的发送者信息（包含头像）
+      messages.value.push({
+        type: 'user',
+        content: data.message,
+        userId: data.senderId,
+        userAvatar: data.senderAvatar || loginUserStore.loginUser.userAvatar
+      })
+
+      await nextTick()
+      scrollToBottom()
+    }
+  })
 })
+
+// 处理AI流式消息分块
+const handleAiStreamChunk = async (data: {
+  sessionId: string
+  chunk: string
+  appId: number
+  senderId?: number
+  senderName?: string
+}) => {
+  const { sessionId, chunk } = data
+
+  // 检查是否已有该会话的消息
+  if (streamingSessions.value.has(sessionId)) {
+    // 累积内容
+    const session = streamingSessions.value.get(sessionId)!
+    session.accumulatedContent += chunk
+    // 更新消息内容
+    messages.value[session.messageIndex].content = session.accumulatedContent
+  } else {
+    // 创建新的AI消息占位符
+    const messageIndex = messages.value.length
+    messages.value.push({
+      type: 'ai',
+      content: chunk,
+      loading: true,
+      userId: data.senderId,
+      userAvatar: aiAvatar,
+      sessionId: sessionId
+    })
+
+    // 记录会话信息
+    streamingSessions.value.set(sessionId, {
+      messageIndex: messageIndex,
+      accumulatedContent: chunk,
+      senderId: data.senderId,
+      senderName: data.senderName
+    })
+  }
+
+  await nextTick()
+  scrollToBottom()
+}
+
+// 处理AI流式消息结束
+const handleAiStreamEnd = async (data: {
+  sessionId: string
+  fullContent: string
+  appId: number
+  senderId?: number
+  senderName?: string
+}) => {
+  const { sessionId, fullContent } = data
+
+  // 检查是否有该会话的消息
+  if (streamingSessions.value.has(sessionId)) {
+    const session = streamingSessions.value.get(sessionId)!
+
+    // 更新消息内容为完整内容
+    messages.value[session.messageIndex].content = fullContent
+    messages.value[session.messageIndex].loading = false
+
+    // 清理会话
+    streamingSessions.value.delete(sessionId)
+
+    await nextTick()
+    scrollToBottom()
+
+    // 更新预览
+    updatePreview()
+  }
+}
+
+// 添加实时AI消息（旧版兼容）
+const addRealTimeAiMessage = async (content: string) => {
+  // 添加AI消息占位符
+  messages.value.push({
+    type: 'ai',
+    content: content,
+    loading: false,
+    userAvatar: aiAvatar
+  })
+
+  await nextTick()
+  scrollToBottom()
+
+  // 更新预览
+  updatePreview()
+}
 
 // 清理资源
 onUnmounted(() => {
+  // 移除事件监听器
+  window.removeEventListener('message', (event) => {
+    visualEditor.handleIframeMessage(event)
+  })
+  window.removeEventListener('ai-answer-stream', (event: Event) => {
+    const data = (event as CustomEvent).detail
+    if (data.appId && Number(data.appId) === Number(appId.value)) {
+      // 消息处理逻辑
+    }
+  })
+  window.removeEventListener('ai-answer-stream-end', (event: Event) => {
+    const data = (event as CustomEvent).detail
+    if (data.appId && Number(data.appId) === Number(appId.value)) {
+      // 消息处理逻辑
+    }
+  })
+  window.removeEventListener('ai-answer-share', (event: Event) => {
+    const data = (event as CustomEvent).detail
+    if (data.appId && Number(data.appId) === Number(appId.value)) {
+      // 消息处理逻辑
+    }
+  })
+  window.removeEventListener('collaboration-message', (event: Event) => {
+    const data = (event as CustomEvent).detail
+    if (data.appId && Number(data.appId) === Number(appId.value)) {
+      // 消息处理逻辑
+    }
+  })
+  // 清理流式会话
+  streamingSessions.value.clear()
   // EventSource 会在组件卸载时自动清理
 })
 </script>

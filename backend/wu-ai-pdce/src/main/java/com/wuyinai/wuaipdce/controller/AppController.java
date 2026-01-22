@@ -14,16 +14,21 @@ import com.wuyinai.wuaipdce.exception.ErrorCode;
 import com.wuyinai.wuaipdce.exception.ThrowUtils;
 import com.wuyinai.wuaipdce.model.dto.app.*;
 import com.wuyinai.wuaipdce.model.entity.App;
+import com.wuyinai.wuaipdce.model.entity.CollaborationRecord;
 import com.wuyinai.wuaipdce.model.entity.User;
 import com.wuyinai.wuaipdce.model.enums.RateLimitType;
 import com.wuyinai.wuaipdce.model.vo.AppVO;
 import com.wuyinai.wuaipdce.service.AppService;
+import com.wuyinai.wuaipdce.service.CollaborationService;
 import com.wuyinai.wuaipdce.service.ProjectDownloadService;
 import com.wuyinai.wuaipdce.service.UserService;
+import com.wuyinai.wuaipdce.websocket.WebSocketHandler;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
@@ -34,6 +39,8 @@ import reactor.core.publisher.Mono;
 //使用场景：常用于HTTP请求响应、数据库查询等返回单个结果的异步操作
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 
@@ -44,6 +51,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/app")
+@Slf4j
 public class AppController {
 
     @Resource
@@ -54,6 +62,10 @@ public class AppController {
 
     @Resource
     private ProjectDownloadService projectDownloadService;
+
+    @Resource
+    @Lazy
+    private WebSocketHandler webSocketHandler;
     /**
      * 创建应用
      *
@@ -233,11 +245,24 @@ public class AppController {
         ThrowUtils.throwIf(message == null, ErrorCode.PARAMS_ERROR, "用户消息不能为空");
         //获取登录的用户信息
         User loginUser = userService.getLoginUser(request);
+        List<Long> userIds = appService.getCollaborators(appId, loginUser.getId());
 //        return appService.chatToGenCode(appId, message, loginUser);
+
+        // 生成唯一的会话ID，用于前端合并流式消息
+        String sessionId = String.valueOf(System.currentTimeMillis()) + "_" + loginUser.getId();
+
         Flux<String> flux = appService.chatToGenCode(appId, message, loginUser);
+
+        // 使用原子变量累积内容
+        final String[] accumulatedContent = {""};
+
         // 将每个数据块（chunk）包装成一个JSON对象，键为"d"，
         // 值为chunk内容，然后构建一个ServerSentEvent对象，用于通过SSE协议发送数据。
         return flux.map(chunk ->{
+            // 累积内容
+            accumulatedContent[0] += chunk;
+            // 发送WebSocket流式消息（带会话ID）
+            webSocketHandler.handleAiAnswerStreamShare(sessionId, chunk, userIds, appId, loginUser.getId(), loginUser.getUserName());
             // 将内容包装成JSON对象
             Map<String,String> wrapper = Map.of("d",chunk);
             String jsonData = JSONUtil.toJsonStr( wrapper);
@@ -251,7 +276,10 @@ public class AppController {
                         .event("end")
                         .data("")
                         .build()
-        ));
+        )).doAfterTerminate(() -> {
+            // 流式结束后，发送WebSocket结束消息
+            webSocketHandler.handleAiAnswerStreamEnd(sessionId, accumulatedContent[0], userIds, appId, loginUser.getId(), loginUser.getUserName());
+        });
     }
 
     /**

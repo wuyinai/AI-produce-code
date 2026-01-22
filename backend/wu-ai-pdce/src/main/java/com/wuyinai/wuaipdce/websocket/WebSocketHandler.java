@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wuyinai.wuaipdce.mapper.CollaborationMemberMapper;
 import com.wuyinai.wuaipdce.model.entity.CollaborationMember;
 import com.wuyinai.wuaipdce.model.entity.User;
+import com.wuyinai.wuaipdce.model.vo.UserVO;
 import com.wuyinai.wuaipdce.service.CollaborationService;
 import com.wuyinai.wuaipdce.service.UserService;
 import jakarta.annotation.Resource;
@@ -16,6 +17,7 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -160,6 +162,78 @@ public class WebSocketHandler extends TextWebSocketHandler {
             }
         } catch (Exception e) {
             log.error("处理用户 {} 消息失败：{}", userId, e.getMessage(), e);
+        }
+    }
+    //发送AI流式回答共享消息（带会话ID，用于前端合并消息）
+    public void handleAiAnswerStreamShare(String sessionId, String chunkContent, List<Long> userIds, Long appId, Long senderId, String senderName) {
+        try{
+            log.info("AI流式回答共享消息，sessionId: {}, chunk: {}", sessionId, chunkContent);
+            //构建消息
+            Map<Object, Object> streamMessage = new ConcurrentHashMap<>();
+            streamMessage.put("type", "ai_answer_stream");
+            streamMessage.put("sessionId", sessionId);
+            streamMessage.put("chunk", chunkContent);
+            streamMessage.put("appId", appId);
+            streamMessage.put("senderId", senderId);
+            streamMessage.put("senderName", senderName);
+
+            //发送AI流式回答消息给协作者们
+            for (Long userId : userIds) {
+                WebSocketSession session = ONLINE_USERS.get(userId);
+                if (session != null && session.isOpen()) {
+                    session.sendMessage(new TextMessage(OBJECT_MAPPER.writeValueAsString(streamMessage)));
+                }
+            }
+        }catch (IOException e){
+            log.error("发送AI流式回答共享消息失败：{}", e.getMessage(), e);
+        }
+    }
+
+    //发送AI流式回答结束消息
+    public void handleAiAnswerStreamEnd(String sessionId, String fullContent, List<Long> userIds, Long appId, Long senderId, String senderName) {
+        try{
+            log.info("AI流式回答结束消息，sessionId: {}", sessionId);
+            //构建结束消息
+            Map<Object, Object> endMessage = new ConcurrentHashMap<>();
+            endMessage.put("type", "ai_answer_stream_end");
+            endMessage.put("sessionId", sessionId);
+            endMessage.put("fullContent", fullContent);
+            endMessage.put("appId", appId);
+            endMessage.put("senderId", senderId);
+            endMessage.put("senderName", senderName);
+
+            //发送结束消息给协作者们
+            for (Long userId : userIds) {
+                WebSocketSession session = ONLINE_USERS.get(userId);
+                if (session != null && session.isOpen()) {
+                    session.sendMessage(new TextMessage(OBJECT_MAPPER.writeValueAsString(endMessage)));
+                }
+            }
+        }catch (IOException e){
+            log.error("发送AI流式回答结束消息失败：{}", e.getMessage(), e);
+        }
+    }
+
+    //发送协作用户发送给的消息
+    public void handleCollaborationMessage(String message, List<Long> userIds, Long appId, UserVO sender) {
+        try{
+            log.info("协作消息{}", message);
+            //构建消息
+            Map<Object, Object> collaborationMessage = new ConcurrentHashMap<>();
+            collaborationMessage.put("type", "collaboration_message");
+            collaborationMessage.put("message", message);
+            collaborationMessage.put("user",sender);
+            collaborationMessage.put("appId", appId);
+
+            //发送消息给协作者们
+            for (Long userId : userIds) {
+                WebSocketSession session = ONLINE_USERS.get(userId);
+                if (session != null && session.isOpen()) {
+                    session.sendMessage(new TextMessage(OBJECT_MAPPER.writeValueAsString(collaborationMessage)));
+                }
+            }
+        }catch (IOException e){
+            log.error("发送协作消息失败：{}", e.getMessage(), e);
         }
     }
 

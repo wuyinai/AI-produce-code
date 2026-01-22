@@ -115,11 +115,73 @@ export const useWebSocketStore = defineStore('websocket', () => {
           else if (messageType === 'collaboration_status_change') {
             handleCollaborationStatusChange(messageData)
           }
+          // 处理协作用户消息
+          else if (messageType === 'collaboration_message') {
+            handleCollaborationMessage(messageData)
+          }
+          // 处理AI流式回答消息（分块）
+          else if (messageType === 'ai_answer_stream') {
+            handleAiAnswerStream(messageData)
+          }
+          // 处理AI流式回答结束消息
+          else if (messageType === 'ai_answer_stream_end') {
+            handleAiAnswerStreamEnd(messageData)
+          }
         } catch (error) {
           console.error('解析WebSocket消息失败:', error)
         }
       }
     })
+  }
+
+  // 处理协作用户消息
+  function handleCollaborationMessage(messageData: any) {
+    console.log('收到协作用户消息:', messageData)
+    console.log('消息中的appId:', messageData.appId, '类型:', typeof messageData.appId)
+    console.log('发送者信息:', messageData.user)
+    const event = new CustomEvent('collaboration-message', {
+      detail: {
+        message: messageData.message,
+        appId: messageData.appId,
+        senderId: messageData.user?.id,
+        senderName: messageData.user?.userName,
+        senderAvatar: messageData.user?.userAvatar,
+        timestamp: messageData.timestamp
+      }
+    })
+    window.dispatchEvent(event)
+  }
+
+  // 处理AI流式回答消息（分块）
+  function handleAiAnswerStream(messageData: any) {
+    console.log('收到AI流式回答消息:', messageData)
+    const event = new CustomEvent('ai-answer-stream', {
+      detail: {
+        sessionId: messageData.sessionId,
+        chunk: messageData.chunk,
+        appId: messageData.appId,
+        senderId: messageData.senderId,
+        senderName: messageData.senderName,
+        timestamp: messageData.timestamp
+      }
+    })
+    window.dispatchEvent(event)
+  }
+
+  // 处理AI流式回答结束消息
+  function handleAiAnswerStreamEnd(messageData: any) {
+    console.log('收到AI流式回答结束消息:', messageData)
+    const event = new CustomEvent('ai-answer-stream-end', {
+      detail: {
+        sessionId: messageData.sessionId,
+        fullContent: messageData.fullContent,
+        appId: messageData.appId,
+        senderId: messageData.senderId,
+        senderName: messageData.senderName,
+        timestamp: messageData.timestamp
+      }
+    })
+    window.dispatchEvent(event)
   }
 
   // 处理协作邀请
@@ -205,6 +267,22 @@ export const useWebSocketStore = defineStore('websocket', () => {
     webSocketService.send(message)
   }
 
+  // 发送协作用户消息
+  function sendCollaborationMessage(message: string, appId: number) {
+    const messageData = JSON.stringify({
+      type: 'collaboration_message',
+      message: message,
+      appId: appId,
+      user: {
+        id: loginUserStore.loginUser.id,
+        userName: loginUserStore.loginUser.userName,
+        userAvatar: loginUserStore.loginUser.userAvatar
+      },
+      timestamp: Date.now()
+    })
+    webSocketService.send(messageData)
+  }
+
   // 初始化WebSocket监听
   initWebSocketListeners()
 
@@ -216,6 +294,7 @@ export const useWebSocketStore = defineStore('websocket', () => {
     connect,
     disconnect,
     acceptCollaborationInvite,
-    rejectCollaborationInvite
+    rejectCollaborationInvite,
+    sendCollaborationMessage
   }
 })
