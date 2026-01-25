@@ -681,4 +681,27 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         return userIds;
     }
 
+    /**
+     * 获取应用源码
+     */
+    @Override
+    public String getAppSourceCode(Long appId, User loginUser) {
+        App app = this.getById(appId);
+        if (app == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "应用不存在");
+        }
+        String codeGenType = app.getCodeGenType();
+        String sourceDirName = codeGenType + "_" + appId;
+        String sourceDirPath = AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + sourceDirName;
+        File sourceDir = new File(sourceDirPath);
+        if (!sourceDir.exists() || !sourceDir.isDirectory()) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "应用代码不存在");
+        }
+        List<File> htmlFiles = FileUtil.loopFiles(sourceDir, file -> file.getName().endsWith(".html"));
+        if (htmlFiles.isEmpty()) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "未找到HTML文件");
+        }
+        File mainHtmlFile = htmlFiles.get(0);
+        return FileUtil.readUtf8String(mainHtmlFile);
+    }
 }

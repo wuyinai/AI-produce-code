@@ -125,4 +125,12 @@ public interface AppService extends IService<App> {
     void saveDirectEdit(AppSaveDirectEditRequest appSaveDirectEditRequest, User loginUser);
 
     List<Long> getCollaborators(Long appId, Long userId);
+
+    /**
+     * 获取应用源码
+     * @param appId 应用id
+     * @param loginUser 登录用户
+     * @return 源码内容
+     */
+    String getAppSourceCode(Long appId, User loginUser);
 }

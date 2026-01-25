@@ -343,4 +343,20 @@ public class AppController {
         appService.saveDirectEdit(appSaveDirectEditRequest, loginUser);
         return ResultUtils.success(true);
     }
+
+    /**
+     * 获取应用源码
+     * @param appId 应用id
+     * @param request 请求
+     * @return 源码内容
+     */
+    @GetMapping("/source/{appId}")
+    public BaseResponse<String> getAppSource(@PathVariable Long appId, HttpServletRequest request) {
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用id不能为空");
+        App app = appService.getById(appId);
+        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
+        User loginUser = userService.getLoginUser(request);
+        String sourceCode = appService.getAppSourceCode(appId, loginUser);
+        return ResultUtils.success(sourceCode);
+    }
 }

@@ -56,6 +56,26 @@
             </a-button>
           </template>
         </template>
+        <a-button
+          type="default"
+          @click="switchToPreview"
+          :class="{ 'view-mode-active': viewMode === 'preview' }"
+        >
+          <template #icon>
+            <EyeOutlined />
+          </template>
+          查看预览
+        </a-button>
+        <a-button
+          type="default"
+          @click="switchToSource"
+          :class="{ 'view-mode-active': viewMode === 'source' }"
+        >
+          <template #icon>
+            <FileCodeOutlined />
+          </template>
+          查看源码
+        </a-button>
         <a-button type="default" @click="showAppDetail">
           <template #icon>
             <InfoCircleOutlined />
@@ -286,22 +306,38 @@
           </div>
         </div>
         <div class="preview-content" :class="deviceClass">
-          <div v-if="!previewUrl && !isGenerating" class="preview-placeholder">
-            <div class="placeholder-icon">🌐</div>
-            <p>网站文件生成完成后将在这里展示</p>
-          </div>
-          <div v-else-if="isGenerating" class="preview-loading">
-            <a-spin size="large" />
-            <p>正在生成网站...</p>
-          </div>
-          <div v-else class="device-preview-container">
-            <iframe
-              :src="previewUrl"
-              class="preview-iframe"
-              frameborder="0"
-              @load="onIframeLoad"
-            ></iframe>
-          </div>
+          <template v-if="viewMode === 'preview'">
+            <div v-if="!previewUrl && !isGenerating" class="preview-placeholder">
+              <div class="placeholder-icon">🌐</div>
+              <p>网站文件生成完成后将在这里展示</p>
+            </div>
+            <div v-else-if="isGenerating" class="preview-loading">
+              <a-spin size="large" />
+              <p>正在生成网站...</p>
+            </div>
+            <div v-else class="device-preview-container">
+              <iframe
+                :src="previewUrl"
+                class="preview-iframe"
+                frameborder="0"
+                @load="onIframeLoad"
+              ></iframe>
+            </div>
+          </template>
+          <template v-else>
+            <div v-if="sourceCodeLoading" class="preview-loading">
+              <a-spin size="large" />
+              <p>正在加载源码...</p>
+            </div>
+            <div v-else class="source-code-container">
+              <div class="source-code-with-lines">
+                <div class="line-numbers">
+                  <span v-for="n in sourceCodeLineCount" :key="n">{{ n }}</span>
+                </div>
+                <pre class="source-code-viewer"><code class="language-html" v-html="highlightedSourceCode"></code></pre>
+              </div>
+            </div>
+          </template>
         </div>
       </div>
     </div>
@@ -390,6 +426,7 @@ import FriendSelector from '@/components/FriendSelector.vue'
 import aiAvatar from '@/assets/aiAvatar.png'
 import { API_BASE_URL, getStaticPreviewUrl } from '@/config/env'
 import { VisualEditor, type ElementInfo } from '@/utils/visualEditor'
+import hljs from 'highlight.js'
 
 import {
   CloudUploadOutlined,
@@ -403,6 +440,8 @@ import {
   UserAddOutlined,
   CloseOutlined,
   BellOutlined,
+  EyeOutlined,
+  CodeOutlined,
 } from '@ant-design/icons-vue'
 
 const route = useRoute()
@@ -475,14 +514,82 @@ const visualEditor = new VisualEditor({
 // 设备预览相关
 const currentDevice = ref('desktop') // 默认桌面模式
 
+// 查看模式相关
+type ViewMode = 'preview' | 'source'
+const viewMode = ref<ViewMode>('preview')
+const sourceCode = ref('')
+const sourceCodeLoading = ref(false)
+
 // 设备切换函数
 const switchDevice = (device: 'mobile' | 'tablet' | 'desktop') => {
   currentDevice.value = device
 }
 
+// 切换到预览模式
+const switchToPreview = () => {
+  viewMode.value = 'preview'
+}
+
+// 切换到源码模式
+const switchToSource = async () => {
+  if (viewMode.value === 'source' && sourceCode.value) {
+    return
+  }
+  viewMode.value = 'source'
+  if (!sourceCode.value) {
+    await fetchSourceCode()
+  }
+}
+
+// 获取源码
+const fetchSourceCode = async () => {
+  if (!appId.value) return
+
+  sourceCodeLoading.value = true
+  try {
+    const API_BASE_URL = request.defaults.baseURL || ''
+    const url = `${API_BASE_URL}/app/source/${appId.value}`
+    const response = await fetch(url, {
+      method: 'GET',
+      credentials: 'include',
+    })
+    if (!response.ok) {
+      throw new Error(`获取源码失败: ${response.status}`)
+    }
+    const data = await response.json()
+    if (data.code === 0 && data.data) {
+      sourceCode.value = data.data
+    } else {
+      message.error(data.message || '获取源码失败')
+    }
+  } catch (error) {
+    console.error('获取源码失败：', error)
+    message.error('获取源码失败，请重试')
+  } finally {
+    sourceCodeLoading.value = false
+  }
+}
+
 // 计算当前设备的样式类
 const deviceClass = computed(() => {
   return `device-${currentDevice.value}`
+})
+
+// 高亮源码
+const highlightedSourceCode = computed(() => {
+  if (!sourceCode.value) return ''
+  try {
+    return hljs.highlight(sourceCode.value, { language: 'html' }).value
+  } catch (error) {
+    console.error('高亮源码失败：', error)
+    return sourceCode.value
+  }
+})
+
+// 源码行数
+const sourceCodeLineCount = computed(() => {
+  if (!sourceCode.value) return 0
+  return sourceCode.value.split('\n').length
 })
 
 // 直接修改模式切换函数
@@ -1653,6 +1760,66 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   border: none;
+}
+
+/* 源码查看器样式 */
+.source-code-container {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: #282c34;
+  padding: 16px;
+}
+
+.source-code-with-lines {
+  display: flex;
+  gap: 16px;
+}
+
+.line-numbers {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding-right: 8px;
+  border-right: 1px solid #3e4451;
+  color: #495162;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  user-select: none;
+}
+
+.line-numbers span {
+  min-width: 24px;
+  text-align: right;
+}
+
+.source-code-viewer {
+  margin: 0;
+  padding: 0;
+  flex: 1;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #abb2bf;
+  white-space: pre;
+  overflow: visible;
+}
+
+.source-code-viewer code {
+  font-family: inherit;
+}
+
+/* 查看模式按钮激活状态 */
+.view-mode-active {
+  background-color: #1890ff !important;
+  border-color: #1890ff !important;
+  color: white !important;
+}
+
+.view-mode-active:hover {
+  background-color: #40a9ff !important;
+  border-color: #40a9ff !important;
 }
 
 /* 设备切换按钮样式 */
