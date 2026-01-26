@@ -325,16 +325,46 @@
             </div>
           </template>
           <template v-else>
-            <div v-if="sourceCodeLoading" class="preview-loading">
-              <a-spin size="large" />
-              <p>正在加载源码...</p>
-            </div>
-            <div v-else class="source-code-container">
-              <div class="source-code-with-lines">
-                <div class="line-numbers">
-                  <span v-for="n in sourceCodeLineCount" :key="n">{{ n }}</span>
+            <div class="source-code-view">
+              <div class="source-code-sidebar">
+                <div class="sidebar-header">
+                  <FileOutlined />
+                  <span>文件列表</span>
                 </div>
-                <pre class="source-code-viewer"><code class="language-html" v-html="highlightedSourceCode"></code></pre>
+                <div class="file-tree">
+                  <div v-if="sourceDirLoading" class="file-tree-loading">
+                    <a-spin size="small" />
+                  </div>
+                  <template v-else>
+                    <FileTreeNode
+                      v-for="node in sourceDirTree"
+                      :key="node.path"
+                      :node="node"
+                      :selected-file="selectedFilePath"
+                      @select="handleFileSelect"
+                    />
+                  </template>
+                </div>
+              </div>
+              <div class="source-code-main">
+                <div v-if="sourceCodeLoading" class="preview-loading">
+                  <a-spin size="large" />
+                  <p>正在加载源码...</p>
+                </div>
+                <template v-else>
+                  <div class="source-code-header">
+                    <FileTextOutlined />
+                    <span>{{ selectedFileName || '选择一个文件查看源码' }}</span>
+                  </div>
+                  <div class="source-code-content">
+                    <div class="source-code-with-lines">
+                      <div class="line-numbers">
+                        <span v-for="n in sourceCodeLineCount" :key="n">{{ n }}</span>
+                      </div>
+                      <pre class="source-code-viewer"><code :class="sourceCodeLanguageClass" v-html="highlightedSourceCode"></code></pre>
+                    </div>
+                  </div>
+                </template>
               </div>
             </div>
           </template>
@@ -412,6 +442,8 @@ import { getAppVoById,
   deployApp as deployAppApi,
   deleteApp as deleteAppApi,
   saveDirectEdit,
+  getAppSourceDir,
+  getAppSourceFile,
 } from '@/api/appController'
 import { listAppChatHistory } from '@/api/chatHistoryController'
 import { getCollaborationMembers, getCollaboratorsByAppId } from '@/api/collaborationController'
@@ -423,6 +455,7 @@ import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 import AppDetailModal from '@/components/AppDetailModal.vue'
 import DeploySuccessModal from '@/components/DeploySuccessModal.vue'
 import FriendSelector from '@/components/FriendSelector.vue'
+import FileTreeNode from '@/components/FileTreeNode.vue'
 import aiAvatar from '@/assets/aiAvatar.png'
 import { API_BASE_URL, getStaticPreviewUrl } from '@/config/env'
 import { VisualEditor, type ElementInfo } from '@/utils/visualEditor'
@@ -442,6 +475,10 @@ import {
   BellOutlined,
   EyeOutlined,
   CodeOutlined,
+  FileOutlined,
+  FileTextOutlined,
+  FolderOutlined,
+  FolderOpenOutlined,
 } from '@ant-design/icons-vue'
 
 const route = useRoute()
@@ -519,6 +556,10 @@ type ViewMode = 'preview' | 'source'
 const viewMode = ref<ViewMode>('preview')
 const sourceCode = ref('')
 const sourceCodeLoading = ref(false)
+const sourceDirTree = ref<API.SourceCodeFileDTO[]>([])
+const sourceDirLoading = ref(false)
+const selectedFilePath = ref('')
+const selectedFileName = ref('')
 
 // 设备切换函数
 const switchDevice = (device: 'mobile' | 'tablet' | 'desktop') => {
@@ -532,14 +573,105 @@ const switchToPreview = () => {
 
 // 切换到源码模式
 const switchToSource = async () => {
-  if (viewMode.value === 'source' && sourceCode.value) {
-    return
-  }
   viewMode.value = 'source'
-  if (!sourceCode.value) {
-    await fetchSourceCode()
+  if (sourceDirTree.value.length === 0) {
+    await fetchSourceDir()
+  }
+  if (!selectedFilePath.value && sourceDirTree.value.length > 0) {
+    const firstFile = findFirstFile(sourceDirTree.value)
+    if (firstFile) {
+      await fetchSourceFile(firstFile.path, firstFile.name)
+    }
   }
 }
+
+// 查找第一个文件
+const findFirstFile = (nodes: API.SourceCodeFileDTO[]): API.SourceCodeFileDTO | null => {
+  for (const node of nodes) {
+    if (!node.isDir) {
+      return node
+    }
+    if (node.children && node.children.length > 0) {
+      const found = findFirstFile(node.children)
+      if (found) return found
+    }
+  }
+  return null
+}
+
+// 获取源码目录
+const fetchSourceDir = async () => {
+  if (!appId.value) return
+
+  sourceDirLoading.value = true
+  try {
+    const res = await getAppSourceDir({ appId: appId.value as unknown as number })
+    if (res.data.code === 0 && res.data.data) {
+      sourceDirTree.value = res.data.data
+    } else {
+      message.error(res.data.message || '获取文件目录失败')
+    }
+  } catch (error) {
+    console.error('获取文件目录失败：', error)
+    message.error('获取文件目录失败，请重试')
+  } finally {
+    sourceDirLoading.value = false
+  }
+}
+
+// 选择文件
+const handleFileSelect = async (file: API.SourceCodeFileDTO) => {
+  if (file.isDir) return
+  await fetchSourceFile(file.path, file.name)
+}
+
+// 获取指定文件源码
+const fetchSourceFile = async (filePath: string, fileName: string) => {
+  if (!appId.value || !filePath) return
+
+  selectedFilePath.value = filePath
+  selectedFileName.value = fileName
+  sourceCodeLoading.value = true
+  sourceCode.value = ''
+
+  try {
+    const res = await getAppSourceFile({
+      appId: appId.value as unknown as number,
+      filePath: filePath,
+    })
+    if (res.data.code === 0 && res.data.data) {
+      sourceCode.value = res.data.data
+    } else {
+      message.error(res.data.message || '获取文件源码失败')
+    }
+  } catch (error) {
+    console.error('获取文件源码失败：', error)
+    message.error('获取文件源码失败，请重试')
+  } finally {
+    sourceCodeLoading.value = false
+  }
+}
+
+// 获取源码语言类型
+const sourceCodeLanguageClass = computed(() => {
+  const ext = selectedFileName.value?.split('.').pop()?.toLowerCase()
+  switch (ext) {
+    case 'html':
+    case 'htm':
+      return 'language-html'
+    case 'css':
+      return 'language-css'
+    case 'js':
+    case 'javascript':
+      return 'language-javascript'
+    case 'json':
+      return 'language-json'
+    case 'vue':
+      return 'language-html'
+    default:
+      return 'language-html'
+  }
+})
 
 // 获取源码
 const fetchSourceCode = async () => {
@@ -1763,11 +1895,69 @@ onUnmounted(() => {
 }
 
 /* 源码查看器样式 */
-.source-code-container {
+.source-code-view {
   width: 100%;
   height: 100%;
-  overflow: auto;
+  display: flex;
   background-color: #282c34;
+}
+
+.source-code-sidebar {
+  width: 220px;
+  min-width: 180px;
+  background-color: #21252b;
+  border-right: 1px solid #3e4451;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #3e4451;
+  color: #abb2bf;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.file-tree {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.file-tree-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  color: #495162;
+}
+
+.source-code-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.source-code-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #3e4451;
+  color: #abb2bf;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.source-code-content {
+  flex: 1;
+  overflow: auto;
   padding: 16px;
 }
 

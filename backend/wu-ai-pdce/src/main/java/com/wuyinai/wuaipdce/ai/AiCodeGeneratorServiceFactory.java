@@ -107,7 +107,7 @@ public class AiCodeGeneratorServiceFactory {
                 .builder()
                 .id(appId)
                 .chatMemoryStore(redisChatMemoryStore)
-                .maxMessages(20)// 最大消息数
+                .maxMessages(50)// 最大消息数
                 .build();
         chatHistoryService.loadChatHistoryToMemory(appId, chatMemory, 20);//从数据库中获取对话，并保存到缓存中
         // 根据代码生成类型选择不同的模型配置

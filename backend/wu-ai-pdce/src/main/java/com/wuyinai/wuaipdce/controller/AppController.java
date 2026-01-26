@@ -359,4 +359,41 @@ public class AppController {
         String sourceCode = appService.getAppSourceCode(appId, loginUser);
         return ResultUtils.success(sourceCode);
     }
+
+    /**
+     * 获取应用源码目录结构
+     * @param appId 应用id
+     * @param request 请求
+     * @return 目录结构
+     */
+    @GetMapping("/source/{appId}/dir")
+    public BaseResponse<List<SourceCodeFileDTO>> getAppSourceDir(@PathVariable Long appId, HttpServletRequest request) {
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用id不能为空");
+        App app = appService.getById(appId);
+        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
+        User loginUser = userService.getLoginUser(request);
+        List<SourceCodeFileDTO> sourceDir = appService.getAppSourceDir(appId, loginUser);
+        return ResultUtils.success(sourceDir);
+    }
+
+    /**
+     * 获取应用指定文件源码
+     * @param appId 应用id
+     * @param filePath 文件路径
+     * @param request 请求
+     * @return 文件源码内容
+     */
+    @GetMapping("/source/{appId}/file")
+    public BaseResponse<String> getAppSourceFile(
+            @PathVariable Long appId,
+            @RequestParam String filePath,
+            HttpServletRequest request) {
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用id不能为空");
+        ThrowUtils.throwIf(filePath == null || filePath.isEmpty(), ErrorCode.PARAMS_ERROR, "文件路径不能为空");
+        App app = appService.getById(appId);
+        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
+        User loginUser = userService.getLoginUser(request);
+        String sourceCode = appService.getAppSourceFile(appId, filePath, loginUser);
+        return ResultUtils.success(sourceCode);
+    }
 }

@@ -210,3 +210,31 @@ export async function updateApp(body: API.AppUpdateRequest, options?: { [key: st
     ...(options || {}),
   })
 }
+
+/** 此处后端没有提供注释 GET /app/source/${param0}/dir */
+export async function getAppSourceDir(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.getAppSourceDirParams,
+  options?: { [key: string]: any }
+) {
+  const { appId: param0, ...queryParams } = params
+  return request<API.BaseResponseSourceCodeFileDTO[]>(`/app/source/${param0}/dir`, {
+    method: 'GET',
+    params: { ...queryParams },
+    ...(options || {}),
+  })
+}
+
+/** 此处后端没有提供注释 GET /app/source/${param0}/file */
+export async function getAppSourceFile(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.getAppSourceFileParams,
+  options?: { [key: string]: any }
+) {
+  const { appId: param0, ...queryParams } = params
+  return request<API.BaseResponseString>(`/app/source/${param0}/file`, {
+    method: 'GET',
+    params: { ...queryParams },
+    ...(options || {}),
+  })
+}

@@ -362,8 +362,32 @@ declare namespace API {
     deployKey: string
   }
 
+  type SourceCodeFileDTO = {
+    name?: string
+    path?: string
+    isDir?: boolean
+    ext?: string
+    children?: SourceCodeFileDTO[]
+    size?: number
+  }
+
+  type BaseResponseSourceCodeFileDTO = {
+    code?: number
+    data?: SourceCodeFileDTO[]
+    message?: string
+  }
+
   type startCollaborationParams = {
     appId: number
+  }
+
+  type getAppSourceDirParams = {
+    appId: number
+  }
+
+  type getAppSourceFileParams = {
+    appId: number
+    filePath: string
   }
 
   type User = {

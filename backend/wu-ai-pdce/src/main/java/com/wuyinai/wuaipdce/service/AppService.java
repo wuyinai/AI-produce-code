@@ -133,4 +133,21 @@ public interface AppService extends IService<App> {
      * @return 源码内容
      */
     String getAppSourceCode(Long appId, User loginUser);
+
+    /**
+     * 获取应用源码目录结构
+     * @param appId 应用id
+     * @param loginUser 登录用户
+     * @return 目录结构
+     */
+    List<SourceCodeFileDTO> getAppSourceDir(Long appId, User loginUser);
+
+    /**
+     * 获取应用指定文件源码
+     * @param appId 应用id
+     * @param filePath 文件路径
+     * @param loginUser 登录用户
+     * @return 文件源码内容
+     */
+    String getAppSourceFile(Long appId, String filePath, User loginUser);
 }

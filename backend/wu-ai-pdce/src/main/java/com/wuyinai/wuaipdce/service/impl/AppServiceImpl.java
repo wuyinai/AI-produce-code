@@ -704,4 +704,94 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         File mainHtmlFile = htmlFiles.get(0);
         return FileUtil.readUtf8String(mainHtmlFile);
     }
+
+    /**
+     * 获取应用源码目录结构
+     */
+    @Override
+    public List<SourceCodeFileDTO> getAppSourceDir(Long appId, User loginUser) {
+        App app = this.getById(appId);
+        if (app == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "应用不存在");
+        }
+        String codeGenType = app.getCodeGenType();
+        String sourceDirName = codeGenType + "_" + appId;
+        String sourceDirPath = AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + sourceDirName;
+        File sourceDir = new File(sourceDirPath);
+        if (!sourceDir.exists() || !sourceDir.isDirectory()) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "应用代码不存在");
+        }
+        return buildFileTree(sourceDir, sourceDir);
+    }
+
+    /**
+     * 递归构建文件树
+     */
+    private List<SourceCodeFileDTO> buildFileTree(File dir, File rootDir) {
+        List<SourceCodeFileDTO> result = new ArrayList<>();
+        File[] files = dir.listFiles();
+        if (files == null || files.length == 0) {
+            return result;
+        }
+        Arrays.sort(files, (f1, f2) -> {
+            if (f1.isDirectory() && !f2.isDirectory()) {
+                return -1;
+            }
+            if (!f1.isDirectory() && f2.isDirectory()) {
+                return 1;
+            }
+            return f1.getName().compareTo(f2.getName());
+        });
+        for (File file : files) {
+            SourceCodeFileDTO dto = new SourceCodeFileDTO();
+            dto.setName(file.getName());
+            String relativePath = file.getAbsolutePath().substring(rootDir.getAbsolutePath().length());
+            dto.setPath(relativePath.replace("\\", "/"));
+            dto.setIsDir(file.isDirectory());
+            if (file.isDirectory()) {
+                dto.setChildren(buildFileTree(file, rootDir));
+                dto.setExt(null);
+            } else {
+                dto.setExt(getFileExtension(file.getName()));
+                dto.setSize(file.length());
+            }
+            result.add(dto);
+        }
+        return result;
+    }
+
+    /**
+     * 获取文件扩展名
+     */
+    private String getFileExtension(String fileName) {
+        int lastDotIndex = fileName.lastIndexOf('.');
+        if (lastDotIndex > 0 && lastDotIndex < fileName.length() - 1) {
+            return fileName.substring(lastDotIndex);
+        }
+        return "";
+    }
+
+    /**
+     * 获取应用指定文件源码
+     */
+    @Override
+    public String getAppSourceFile(Long appId, String filePath, User loginUser) {
+        App app = this.getById(appId);
+        if (app == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "应用不存在");
+        }
+        String codeGenType = app.getCodeGenType();
+        String sourceDirName = codeGenType + "_" + appId;
+        String sourceDirPath = AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + sourceDirName;
+        File sourceDir = new File(sourceDirPath);
+        if (!sourceDir.exists() || !sourceDir.isDirectory()) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "应用代码不存在");
+        }
+        String normalizedPath = filePath.replace("/", File.separator);
+        File targetFile = new File(sourceDir, normalizedPath);
+        if (!targetFile.exists() || !targetFile.isFile()) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "文件不存在: " + filePath);
+        }
+        return FileUtil.readUtf8String(targetFile);
+    }
 }
