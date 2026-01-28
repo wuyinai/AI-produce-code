@@ -150,4 +150,13 @@ public interface AppService extends IService<App> {
      * @return 文件源码内容
      */
     String getAppSourceFile(Long appId, String filePath, User loginUser);
+
+    /**
+     * 保存应用指定文件源码
+     * @param appId 应用id
+     * @param filePath 文件路径
+     * @param content 文件内容
+     * @param loginUser 登录用户
+     */
+    void saveSourceFile(Long appId, String filePath, String content, User loginUser);
 }

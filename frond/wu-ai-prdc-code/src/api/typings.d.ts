@@ -390,6 +390,12 @@ declare namespace API {
     filePath: string
   }
 
+  type saveSourceFileParams = {
+    appId: number
+    filePath: string
+    content: string
+  }
+
   type User = {
     id?: number
     userAccount?: string

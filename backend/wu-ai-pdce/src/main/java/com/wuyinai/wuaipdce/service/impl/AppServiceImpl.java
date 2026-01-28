@@ -794,4 +794,28 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         }
         return FileUtil.readUtf8String(targetFile);
     }
+
+    /**
+     * 保存应用指定文件源码
+     */
+    @Override
+    public void saveSourceFile(Long appId, String filePath, String content, User loginUser) {
+        App app = this.getById(appId);
+        if (app == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "应用不存在");
+        }
+        String codeGenType = app.getCodeGenType();
+        String sourceDirName = codeGenType + "_" + appId;
+        String sourceDirPath = AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + sourceDirName;
+        File sourceDir = new File(sourceDirPath);
+        if (!sourceDir.exists() || !sourceDir.isDirectory()) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "应用代码不存在");
+        }
+        String normalizedPath = filePath.replace("/", File.separator);
+        File targetFile = new File(sourceDir, normalizedPath);
+        if (!targetFile.exists() || !targetFile.isFile()) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "文件不存在: " + filePath);
+        }
+        FileUtil.writeUtf8String(content, targetFile);
+    }
 }

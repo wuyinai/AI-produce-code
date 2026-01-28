@@ -351,18 +351,67 @@
                   <a-spin size="large" />
                   <p>正在加载源码...</p>
                 </div>
+                <template v-else-if="!selectedFilePath">
+                  <div class="source-code-empty">
+                    <FileTextOutlined />
+                    <p>选择一个文件查看源码</p>
+                  </div>
+                </template>
                 <template v-else>
                   <div class="source-code-header">
                     <FileTextOutlined />
-                    <span>{{ selectedFileName || '选择一个文件查看源码' }}</span>
-                  </div>
-                  <div class="source-code-content">
-                    <div class="source-code-with-lines">
-                      <div class="line-numbers">
-                        <span v-for="n in sourceCodeLineCount" :key="n">{{ n }}</span>
-                      </div>
-                      <pre class="source-code-viewer"><code :class="sourceCodeLanguageClass" v-html="highlightedSourceCode"></code></pre>
+                    <span>{{ selectedFileName }}</span>
+                    <div class="source-code-actions">
+                      <a-button
+                        v-if="!sourceCodeEditMode"
+                        type="primary"
+                        size="small"
+                        @click="enableSourceEditMode"
+                      >
+                        <template #icon>
+                          <EditOutlined />
+                        </template>
+                        编辑
+                      </a-button>
+                      <template v-else>
+                        <a-button
+                          type="primary"
+                          size="small"
+                          @click="saveSourceFileContent"
+                          :loading="sourceCodeSaving"
+                        >
+                          <template #icon>
+                            <SaveOutlined />
+                          </template>
+                          保存
+                        </a-button>
+                        <a-button
+                          size="small"
+                          @click="cancelSourceEditMode"
+                          style="margin-left: 8px"
+                        >
+                          取消
+                        </a-button>
+                      </template>
                     </div>
+                  </div>
+                  <div class="source-code-content" :class="{ 'edit-mode': sourceCodeEditMode }">
+                    <template v-if="!sourceCodeEditMode">
+                      <div class="source-code-with-lines">
+                        <div class="line-numbers">
+                          <span v-for="n in sourceCodeLineCount" :key="n">{{ n }}</span>
+                        </div>
+                        <pre class="source-code-viewer"><code :class="sourceCodeLanguageClass" v-html="highlightedSourceCode"></code></pre>
+                      </div>
+                    </template>
+                    <template v-else>
+                      <a-textarea
+                        v-model:value="sourceCodeEditContent"
+                        class="source-code-editor"
+                        placeholder="编辑文件内容..."
+                        :auto-size="{ minRows: 10, maxRows: 50 }"
+                      />
+                    </template>
                   </div>
                 </template>
               </div>
@@ -444,6 +493,7 @@ import { getAppVoById,
   saveDirectEdit,
   getAppSourceDir,
   getAppSourceFile,
+  saveSourceFile,
 } from '@/api/appController'
 import { listAppChatHistory } from '@/api/chatHistoryController'
 import { getCollaborationMembers, getCollaboratorsByAppId } from '@/api/collaborationController'
@@ -560,6 +610,9 @@ const sourceDirTree = ref<API.SourceCodeFileDTO[]>([])
 const sourceDirLoading = ref(false)
 const selectedFilePath = ref('')
 const selectedFileName = ref('')
+const sourceCodeEditMode = ref(false)
+const sourceCodeEditContent = ref('')
+const sourceCodeSaving = ref(false)
 
 // 设备切换函数
 const switchDevice = (device: 'mobile' | 'tablet' | 'desktop') => {
@@ -672,6 +725,44 @@ const sourceCodeLanguageClass = computed(() => {
       return 'language-html'
   }
 })
+
+// 启用源码编辑模式
+const enableSourceEditMode = () => {
+  sourceCodeEditContent.value = sourceCode.value
+  sourceCodeEditMode.value = true
+}
+
+// 取消源码编辑
+const cancelSourceEditMode = () => {
+  sourceCodeEditContent.value = ''
+  sourceCodeEditMode.value = false
+}
+
+// 保存源码文件
+const saveSourceFileContent = async () => {
+  if (!appId.value || !selectedFilePath.value) return
+
+  sourceCodeSaving.value = true
+  try {
+    const res = await saveSourceFile({
+      appId: appId.value as unknown as number,
+      filePath: selectedFilePath.value,
+      content: sourceCodeEditContent.value,
+    })
+    if (res.data.code === 0) {
+      sourceCode.value = sourceCodeEditContent.value
+      sourceCodeEditMode.value = false
+      message.success('保存成功')
+    } else {
+      message.error(res.data.message || '保存失败')
+    }
+  } catch (error) {
+    console.error('保存文件失败：', error)
+    message.error('保存失败，请重试')
+  } finally {
+    sourceCodeSaving.value = false
+  }
+}
 
 // 获取源码
 const fetchSourceCode = async () => {
@@ -1955,11 +2046,47 @@ onUnmounted(() => {
   font-weight: 500;
 }
 
+.source-code-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+
+.source-code-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+}
+
+.source-code-empty .anticon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.source-code-empty p {
+  margin: 0;
+}
+
 .source-code-content {
   flex: 1;
   overflow: auto;
   padding: 16px;
   background-color: #fafafa;
+}
+
+.source-code-content.edit-mode {
+  padding: 8px;
+}
+
+.source-code-editor {
+  width: 100%;
+  height: 100%;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 .source-code-with-lines {

@@ -396,4 +396,26 @@ public class AppController {
         String sourceCode = appService.getAppSourceFile(appId, filePath, loginUser);
         return ResultUtils.success(sourceCode);
     }
+
+    /**
+     * 保存应用指定文件源码
+     * @param appId 应用id
+     * @param request 请求
+     * @return 保存结果
+     */
+    @PostMapping("/source/{appId}/save")
+    public BaseResponse<Boolean> saveSourceFile(
+            @PathVariable Long appId,
+            @RequestBody SourceCodeSaveRequest saveRequest,
+            HttpServletRequest request) {
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用id不能为空");
+        ThrowUtils.throwIf(saveRequest == null, ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(saveRequest.getFilePath() == null || saveRequest.getFilePath().isEmpty(), ErrorCode.PARAMS_ERROR, "文件路径不能为空");
+        ThrowUtils.throwIf(saveRequest.getContent() == null, ErrorCode.PARAMS_ERROR, "文件内容不能为空");
+        App app = appService.getById(appId);
+        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
+        User loginUser = userService.getLoginUser(request);
+        appService.saveSourceFile(appId, saveRequest.getFilePath(), saveRequest.getContent(), loginUser);
+        return ResultUtils.success(true);
+    }
 }

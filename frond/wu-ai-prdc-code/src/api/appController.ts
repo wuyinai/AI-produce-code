@@ -238,3 +238,17 @@ export async function getAppSourceFile(
     ...(options || {}),
   })
 }
+
+/** 此处后端没有提供注释 POST /app/source/${param0}/save */
+export async function saveSourceFile(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.saveSourceFileParams,
+  options?: { [key: string]: any }
+) {
+  const { appId: param0, ...data } = params
+  return request<API.BaseResponseBoolean>(`/app/source/${param0}/save`, {
+    method: 'POST',
+    data: { ...data },
+    ...(options || {}),
+  })
+}
