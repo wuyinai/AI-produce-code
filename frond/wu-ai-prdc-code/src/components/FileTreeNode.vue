@@ -82,7 +82,7 @@ const toggleExpand = () => {
 
 .node-expand-icon {
   margin-right: 6px;
-  color: #faad14;
+  color: #fa8c16;
 }
 
 .node-name {

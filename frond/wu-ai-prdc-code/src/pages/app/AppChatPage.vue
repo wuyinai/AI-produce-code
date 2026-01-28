@@ -1899,14 +1899,14 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   display: flex;
-  background-color: #282c34;
+  background-color: #ffffff;
 }
 
 .source-code-sidebar {
   width: 220px;
   min-width: 180px;
-  background-color: #21252b;
-  border-right: 1px solid #3e4451;
+  background-color: #f5f5f5;
+  border-right: 1px solid #e8e8e8;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1917,8 +1917,8 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
   padding: 12px 16px;
-  border-bottom: 1px solid #3e4451;
-  color: #abb2bf;
+  border-bottom: 1px solid #e8e8e8;
+  color: #333;
   font-size: 14px;
   font-weight: 600;
 }
@@ -1934,7 +1934,7 @@ onUnmounted(() => {
   justify-content: center;
   align-items: center;
   padding: 20px;
-  color: #495162;
+  color: #999;
 }
 
 .source-code-main {
@@ -1949,8 +1949,8 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
   padding: 12px 16px;
-  border-bottom: 1px solid #3e4451;
-  color: #abb2bf;
+  border-bottom: 1px solid #e8e8e8;
+  color: #333;
   font-size: 14px;
   font-weight: 500;
 }
@@ -1959,6 +1959,7 @@ onUnmounted(() => {
   flex: 1;
   overflow: auto;
   padding: 16px;
+  background-color: #fafafa;
 }
 
 .source-code-with-lines {
@@ -1971,8 +1972,8 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: flex-end;
   padding-right: 8px;
-  border-right: 1px solid #3e4451;
-  color: #495162;
+  border-right: 1px solid #e8e8e8;
+  color: #999;
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   font-size: 14px;
   line-height: 1.5;
@@ -1991,7 +1992,7 @@ onUnmounted(() => {
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   font-size: 14px;
   line-height: 1.5;
-  color: #abb2bf;
+  color: #333;
   white-space: pre;
   overflow: visible;
 }
