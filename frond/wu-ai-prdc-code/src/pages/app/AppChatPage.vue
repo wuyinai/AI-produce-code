@@ -1503,10 +1503,17 @@ const handleError = (error: unknown, aiMessageIndex: number) => {
 }
 
 // 更新预览
-const updatePreview = () => {
+const updatePreview = (forceRefresh = false) => {
   if (appId.value) {
     const codeGenType = appInfo.value?.codeGenType || CodeGenTypeEnum.HTML
-    const newPreviewUrl = getStaticPreviewUrl(codeGenType, String(appId.value))
+    let newPreviewUrl = getStaticPreviewUrl(codeGenType, String(appId.value))
+    
+    // 如果需要强制刷新，添加时间戳参数
+    if (forceRefresh) {
+      const separator = newPreviewUrl.includes('?') ? '&' : '?'
+      newPreviewUrl = `${newPreviewUrl}${separator}_t=${Date.now()}`
+    }
+    
     previewUrl.value = newPreviewUrl
     previewReady.value = true
   }
@@ -1839,7 +1846,8 @@ const handleRollbackVersion = async (versionId: number) => {
       message.success('版本回退成功')
       await fetchVersions()
       await fetchAppInfo()
-      updatePreview()
+      // 强制刷新预览，添加时间戳参数
+      updatePreview(true)
     } else {
       message.error(res.data.message || '版本回退失败')
     }
