@@ -206,25 +206,10 @@ public class AppVersionServiceImpl extends ServiceImpl<AppVersionMapper, AppVers
 
         restoreCodeSnapshot(app, targetVersion.getCodeSnapshot());
 
-        Integer nextVersionNumber = appVersionMapper.getNextVersionNumber(appId);
-        String versionName = "v" + nextVersionNumber + ".0";
-        String versionDescription = "从版本 " + targetVersion.getVersionName() + " 回退";
-
         appVersionMapper.setAllVersionsNotCurrent(appId);
 
-        AppVersion newVersion = AppVersion.builder()
-                .appId(appId)
-                .versionNumber(nextVersionNumber)
-                .versionName(versionName)
-                .versionDescription(versionDescription)
-                .codeSnapshot(targetVersion.getCodeSnapshot())
-                .triggerType("rollback")
-                .triggerMessage("回退到版本 " + targetVersion.getVersionName())
-                .isCurrent(1)
-                .createUserId(loginUser.getId())
-                .build();
-
-        boolean result = this.save(newVersion);
+        targetVersion.setIsCurrent(1);
+        boolean result = this.updateById(targetVersion);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "回退版本失败");
 
         log.info("应用 {} 回退到版本 {} 成功", appId, targetVersion.getVersionName());

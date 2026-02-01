@@ -1843,7 +1843,7 @@ const handleRollbackVersion = async (versionId: number) => {
   try {
     const res = await rollbackToVersion({ versionId: versionId as unknown as number })
     if (res.data.code === 0) {
-      message.success('版本回退成功')
+      message.success('已回退到指定版本')
       await fetchVersions()
       await fetchAppInfo()
       // 强制刷新预览，添加时间戳参数
