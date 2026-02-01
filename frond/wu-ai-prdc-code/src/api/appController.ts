@@ -199,14 +199,16 @@ export async function saveDirectEdit(
   })
 }
 
-/** 此处后端没有提供注释 POST /app/update */
-export async function updateApp(body: API.AppUpdateRequest, options?: { [key: string]: any }) {
-  return request<API.BaseResponseBoolean>('/app/update', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    data: body,
+/** 此处后端没有提供注释 GET /app/source/${param0} */
+export async function getAppSource(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.getAppSourceParams,
+  options?: { [key: string]: any }
+) {
+  const { appId: param0, ...queryParams } = params
+  return request<API.BaseResponseString>(`/app/source/${param0}`, {
+    method: 'GET',
+    params: { ...queryParams },
     ...(options || {}),
   })
 }
@@ -218,7 +220,7 @@ export async function getAppSourceDir(
   options?: { [key: string]: any }
 ) {
   const { appId: param0, ...queryParams } = params
-  return request<API.BaseResponseSourceCodeFileDTO[]>(`/app/source/${param0}/dir`, {
+  return request<API.BaseResponseListSourceCodeFileDTO>(`/app/source/${param0}/dir`, {
     method: 'GET',
     params: { ...queryParams },
     ...(options || {}),
@@ -234,7 +236,9 @@ export async function getAppSourceFile(
   const { appId: param0, ...queryParams } = params
   return request<API.BaseResponseString>(`/app/source/${param0}/file`, {
     method: 'GET',
-    params: { ...queryParams },
+    params: {
+      ...queryParams,
+    },
     ...(options || {}),
   })
 }
@@ -243,12 +247,29 @@ export async function getAppSourceFile(
 export async function saveSourceFile(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
   params: API.saveSourceFileParams,
+  body: API.SourceCodeSaveRequest,
   options?: { [key: string]: any }
 ) {
-  const { appId: param0, ...data } = params
+  const { appId: param0, ...queryParams } = params
   return request<API.BaseResponseBoolean>(`/app/source/${param0}/save`, {
     method: 'POST',
-    data: { ...data },
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    params: { ...queryParams },
+    data: body,
+    ...(options || {}),
+  })
+}
+
+/** 此处后端没有提供注释 POST /app/update */
+export async function updateApp(body: API.AppUpdateRequest, options?: { [key: string]: any }) {
+  return request<API.BaseResponseBoolean>('/app/update', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
     ...(options || {}),
   })
 }

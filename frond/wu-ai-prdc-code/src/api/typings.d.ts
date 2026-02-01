@@ -48,6 +48,27 @@ declare namespace API {
     appName?: string
   }
 
+  type AppVersionCreateRequest = {
+    appId?: number
+    triggerType?: string
+    triggerMessage?: string
+    versionDescription?: string
+  }
+
+  type AppVersionVO = {
+    id?: number
+    appId?: number
+    versionNumber?: number
+    versionName?: string
+    versionDescription?: string
+    triggerType?: string
+    triggerMessage?: string
+    isCurrent?: number
+    createTime?: string
+    createUserId?: number
+    createUserName?: string
+  }
+
   type AppVO = {
     id?: number
     appName?: string
@@ -62,6 +83,12 @@ declare namespace API {
     updateTime?: string
     user?: UserVO
     status?: string
+  }
+
+  type BaseResponseAppVersionVO = {
+    code?: number
+    data?: AppVersionVO
+    message?: string
   }
 
   type BaseResponseAppVO = {
@@ -88,6 +115,12 @@ declare namespace API {
     message?: string
   }
 
+  type BaseResponseListAppVersionVO = {
+    code?: number
+    data?: AppVersionVO[]
+    message?: string
+  }
+
   type BaseResponseListCollaborationMemberVO = {
     code?: number
     data?: CollaborationMemberVO[]
@@ -103,6 +136,12 @@ declare namespace API {
   type BaseResponseListFriendVO = {
     code?: number
     data?: FriendVO[]
+    message?: string
+  }
+
+  type BaseResponseListSourceCodeFileDTO = {
+    code?: number
+    data?: SourceCodeFileDTO[]
     message?: string
   }
 
@@ -226,6 +265,10 @@ declare namespace API {
     id?: number
   }
 
+  type deleteVersionParams = {
+    versionId: number
+  }
+
   type downloadProjectParams = {
     appId: number
   }
@@ -267,6 +310,19 @@ declare namespace API {
     onlineStatus?: string
   }
 
+  type getAppSourceDirParams = {
+    appId: number
+  }
+
+  type getAppSourceFileParams = {
+    appId: number
+    filePath: string
+  }
+
+  type getAppSourceParams = {
+    appId: number
+  }
+
   type getAppVOByIdByAdminParams = {
     id: number
   }
@@ -291,6 +347,10 @@ declare namespace API {
     appId: number
   }
 
+  type getCurrentVersionParams = {
+    appId: number
+  }
+
   type getFriendDetailParams = {
     friendId: number
   }
@@ -303,10 +363,18 @@ declare namespace API {
     id: number
   }
 
+  type getVersionSnapshotParams = {
+    versionId: number
+  }
+
   type listAppChatHistoryParams = {
     appId: number
     pageSize?: number
     lastCreateTime?: string
+  }
+
+  type listVersionsParams = {
+    appId: number
   }
 
   type LoginUserVO = {
@@ -352,6 +420,14 @@ declare namespace API {
     requestId: number
   }
 
+  type rollbackToVersionParams = {
+    versionId: number
+  }
+
+  type saveSourceFileParams = {
+    appId: number
+  }
+
   type searchUsersParams = {
     keyword: string
   }
@@ -367,33 +443,16 @@ declare namespace API {
     path?: string
     isDir?: boolean
     ext?: string
-    children?: SourceCodeFileDTO[]
     size?: number
   }
 
-  type BaseResponseSourceCodeFileDTO = {
-    code?: number
-    data?: SourceCodeFileDTO[]
-    message?: string
+  type SourceCodeSaveRequest = {
+    filePath?: string
+    content?: string
   }
 
   type startCollaborationParams = {
     appId: number
-  }
-
-  type getAppSourceDirParams = {
-    appId: number
-  }
-
-  type getAppSourceFileParams = {
-    appId: number
-    filePath: string
-  }
-
-  type saveSourceFileParams = {
-    appId: number
-    filePath: string
-    content: string
   }
 
   type User = {

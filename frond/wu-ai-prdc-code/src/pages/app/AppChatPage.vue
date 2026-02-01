@@ -100,11 +100,85 @@
           </template>
           部署
         </a-button>
+        <a-button
+          type="default"
+          @click="toggleVersionSidebar"
+          :class="{ 'version-sidebar-active': showVersionSidebar }"
+        >
+          <template #icon>
+            <HistoryOutlined />
+          </template>
+          版本历史
+        </a-button>
       </div>
     </div>
 
     <!-- 主要内容区域 -->
     <div class="main-content">
+      <!-- 版本侧边栏 -->
+      <div class="version-sidebar" v-if="showVersionSidebar">
+        <div class="version-sidebar-header">
+          <HistoryOutlined />
+          <span>版本历史</span>
+          <a-button type="text" size="small" @click="showVersionSidebar = false">
+            <CloseOutlined />
+          </a-button>
+        </div>
+        <div class="version-sidebar-content">
+          <a-spin :spinning="versionsLoading">
+            <div v-if="versions.length === 0" class="version-empty">
+              <HistoryOutlined />
+              <p>暂无版本记录</p>
+            </div>
+            <div v-else class="version-list">
+              <div
+                v-for="version in versions"
+                :key="version.id"
+                class="version-item"
+                :class="{ 'version-current': version.isCurrent === 1 }"
+                @click="handleVersionClick(version)"
+              >
+                <div class="version-header">
+                  <span class="version-name">{{ version.versionName }}</span>
+                  <a-tag v-if="version.isCurrent === 1" color="green" size="small">当前</a-tag>
+                </div>
+                <div class="version-info">
+                  <div class="version-desc">{{ version.versionDescription || '无描述' }}</div>
+                  <div class="version-meta">
+                    <span class="version-time">{{ formatTime(version.createTime) }}</span>
+                    <span class="version-user">{{ version.createUserName }}</span>
+                  </div>
+                </div>
+                <div class="version-actions" v-if="version.isCurrent !== 1 && isCreator">
+                  <a-button
+                    type="link"
+                    size="small"
+                    @click.stop="handleRollbackVersion(version.id)"
+                  >
+                    <template #icon>
+                      <RollbackOutlined />
+                    </template>
+                    回退
+                  </a-button>
+                  <a-popconfirm
+                    title="确定要删除这个版本吗？"
+                    @confirm="handleDeleteVersion(version.id)"
+                    @click.stop
+                  >
+                    <a-button type="link" size="small" danger @click.stop>
+                      <template #icon>
+                        <DeleteOutlined />
+                      </template>
+                      删除
+                    </a-button>
+                  </a-popconfirm>
+                </div>
+              </div>
+            </div>
+          </a-spin>
+        </div>
+      </div>
+
       <!-- 左侧对话区域 -->
       <div class="chat-section">
         <!-- 消息区域 -->
@@ -401,7 +475,8 @@
                         <div class="line-numbers">
                           <span v-for="n in sourceCodeLineCount" :key="n">{{ n }}</span>
                         </div>
-                        <pre class="source-code-viewer"><code :class="sourceCodeLanguageClass" v-html="highlightedSourceCode"></code></pre>
+                        <pre class="source-code-viewer"><code :class="sourceCodeLanguageClass"
+                                                              v-html="highlightedSourceCode"></code></pre>
                       </div>
                     </template>
                     <template v-else>
@@ -475,8 +550,6 @@
         </template>
       </a-table>
     </a-modal>
-
-
   </div>
 </template>
 
@@ -487,17 +560,19 @@ import { message } from 'ant-design-vue'
 import { useLoginUserStore } from '@/stores/loginUser'
 import { useWebSocketStore } from '@/stores/websocket'
 import { webSocketService } from '@/utils/websocket'
-import { getAppVoById,
+import {
+  getAppVoById,
   deployApp as deployAppApi,
   deleteApp as deleteAppApi,
   saveDirectEdit,
   getAppSourceDir,
   getAppSourceFile,
-  saveSourceFile,
+  saveSourceFile
 } from '@/api/appController'
 import { listAppChatHistory } from '@/api/chatHistoryController'
 import { getCollaborationMembers, getCollaboratorsByAppId } from '@/api/collaborationController'
 import { getUserVoById } from '@/api/userController'
+import { listVersions, rollbackToVersion, deleteVersion } from '@/api/appVersionController'
 import { CodeGenTypeEnum, formatCodeGenType } from '@/utils/codeGenTypes'
 import request from '@/request'
 
@@ -522,21 +597,18 @@ import {
   TeamOutlined,
   UserAddOutlined,
   CloseOutlined,
-  BellOutlined,
   EyeOutlined,
-  CodeOutlined,
   FileOutlined,
   FileTextOutlined,
-  FolderOutlined,
-  FolderOpenOutlined,
+  HistoryOutlined,
+  RollbackOutlined,
+  DeleteOutlined
 } from '@ant-design/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
 const webSocketStore = useWebSocketStore()
-
-
 
 // 应用信息
 const appInfo = ref<API.AppVO>()
@@ -550,7 +622,7 @@ interface Message {
   createTime?: string
   userId?: number
   userAvatar?: string
-  sessionId?: string  // 用于关联流式消息
+  sessionId?: string // 用于关联流式消息
 }
 
 const messages = ref<Message[]>([]) // 消息列表
@@ -562,18 +634,28 @@ const messagesContainer = ref<HTMLElement>()
 const userInfoCache = ref<Map<number, API.UserVO>>(new Map())
 
 // 跟踪正在进行的AI流式会话，用于合并消息
-const streamingSessions = ref<Map<string, {
-  messageIndex: number
-  accumulatedContent: string
-  senderId?: number
-  senderName?: string
-}>>(new Map())
+const streamingSessions = ref<
+  Map<
+    string,
+    {
+      messageIndex: number
+      accumulatedContent: string
+      senderId?: number
+      senderName?: string
+    }
+  >
+>(new Map())
 
 // 对话历史相关
 const loadingHistory = ref(false) // 加载状态
 const hasMoreHistory = ref(false) // 是否还有更多历史
 const lastCreateTime = ref<string>() //游标：最后一条消息的创建时间
 const historyLoaded = ref(false)
+
+// 版本相关
+const showVersionSidebar = ref(false)
+const versions = ref<API.AppVersionVO[]>([])
+const versionsLoading = ref(false)
 
 // 预览相关
 const previewUrl = ref('')
@@ -595,7 +677,7 @@ const selectedElementInfo = ref<ElementInfo | null>(null)
 const visualEditor = new VisualEditor({
   onElementSelected: (elementInfo: ElementInfo) => {
     selectedElementInfo.value = elementInfo
-  },
+  }
 })
 
 // 设备预览相关
@@ -690,7 +772,7 @@ const fetchSourceFile = async (filePath: string, fileName: string) => {
   try {
     const res = await getAppSourceFile({
       appId: appId.value as unknown as number,
-      filePath: filePath,
+      filePath: filePath
     })
     if (res.data.code === 0 && res.data.data) {
       sourceCode.value = res.data.data
@@ -747,7 +829,7 @@ const saveSourceFileContent = async () => {
     const res = await saveSourceFile({
       appId: appId.value as unknown as number,
       filePath: selectedFilePath.value,
-      content: sourceCodeEditContent.value,
+      content: sourceCodeEditContent.value
     })
     if (res.data.code === 0) {
       sourceCode.value = sourceCodeEditContent.value
@@ -774,7 +856,7 @@ const fetchSourceCode = async () => {
     const url = `${API_BASE_URL}/app/source/${appId.value}`
     const response = await fetch(url, {
       method: 'GET',
-      credentials: 'include',
+      credentials: 'include'
     })
     if (!response.ok) {
       throw new Error(`获取源码失败: ${response.status}`)
@@ -861,7 +943,7 @@ const saveDirectEditContent = async () => {
     // 调用后端API保存修改
     const res = await saveDirectEdit({
       appId: appId.value,
-      files: modifiedFiles,
+      files: modifiedFiles
     })
 
     if (res.data.code === 0) {
@@ -879,7 +961,7 @@ const saveDirectEditContent = async () => {
 
 // 权限相关
 const isOwner = computed(() => {
-  console.log("真假===",isCollaborator.value)
+  console.log('真假===', isCollaborator.value)
   return appInfo.value?.userId === loginUserStore.loginUser.id || isCollaborator.value
 })
 
@@ -893,17 +975,13 @@ const collaboratorsByApp = ref<API.CollaborationMember[]>([])
 // 检查当前用户是否为协作者
 const isCollaborator = computed(() => {
   return collaboratorsByApp.value.some(
-    collaborator => collaborator.userId === loginUserStore.loginUser.id
+    (collaborator) => collaborator.userId === loginUserStore.loginUser.id
   )
 })
 
 // 更新isAdmin逻辑：包含管理员、应用创建者、协作者
 const isAdmin = computed(() => {
-  return (
-    loginUserStore.loginUser.userRole === 'admin' ||
-    isOwner.value ||
-    isCollaborator.value
-  )
+  return loginUserStore.loginUser.userRole === 'admin' || isOwner.value || isCollaborator.value
 })
 
 // 获取用户信息，优先从缓存中获取，缓存中没有则调用API
@@ -956,20 +1034,20 @@ const collaboratorsColumns = [
     title: '用户昵称',
     dataIndex: 'userName',
     key: 'userName',
-    ellipsis: true,
+    ellipsis: true
   },
   {
     title: '加入时间',
     key: 'joinTime',
     width: 200,
-    ellipsis: true,
+    ellipsis: true
   },
   {
     title: '创建时间',
     key: 'createTime',
     width: 200,
-    ellipsis: true,
-  },
+    ellipsis: true
+  }
 ]
 
 // 开始协作
@@ -1068,8 +1146,6 @@ const handleAddCollaborators = async (friendIds: number[]) => {
   }
 }
 
-
-
 // 加载对话历史
 const loadChatHistory = async (isLoadMore = false) => {
   if (!appId.value || loadingHistory.value) return
@@ -1077,7 +1153,7 @@ const loadChatHistory = async (isLoadMore = false) => {
   try {
     const params: API.listAppChatHistoryParams = {
       appId: appId.value,
-      pageSize: 10,
+      pageSize: 10
     }
     // 如果是加载更多，传递最后一条消息的创建时间作为游标
     if (isLoadMore && lastCreateTime.value) {
@@ -1215,7 +1291,7 @@ const fetchCollaboratorsByAppId = async () => {
 // 检查是否存在协作记录
 const checkCollaborationRecord = async () => {
   try {
-    const res = await import('@/api/collaborationController').then(module =>
+    const res = await import('@/api/collaborationController').then((module) =>
       module.getCollaborationRecordByAppId({ appId: appId.value as unknown as number })
     )
     if (res.data.code === 0 && res.data.data && res.data.data.id) {
@@ -1245,7 +1321,7 @@ const sendInitialMessage = async (prompt: string) => {
   messages.value.push({
     type: 'ai',
     content: '',
-    loading: true,
+    loading: true
   })
 
   await nextTick()
@@ -1302,7 +1378,7 @@ const sendMessage = async () => {
   messages.value.push({
     type: 'ai',
     content: '',
-    loading: true,
+    loading: true
   })
 
   await nextTick()
@@ -1324,20 +1400,20 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
     // 构建URL参数
     const params = new URLSearchParams({
       appId: String(appId.value || ''),
-      message: userMessage,
+      message: userMessage
     })
 
     const url = `${baseURL}/app/chat/gen/code?${params}`
 
     // 创建 EventSource 连接
     eventSource = new EventSource(url, {
-      withCredentials: true,
+      withCredentials: true
     })
 
     let fullContent = ''
 
     // 处理接收到的消息
-    eventSource.onmessage = function (event) {
+    eventSource.onmessage = function(event) {
       if (streamCompleted) return
 
       try {
@@ -1359,7 +1435,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
     }
 
     // 处理done事件
-    eventSource.addEventListener('done', function () {
+    eventSource.addEventListener('done', function() {
       if (streamCompleted) return
 
       streamCompleted = true
@@ -1373,7 +1449,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
       }, 1000)
     })
     // 处理business-error事件（后端限流等错误）
-    eventSource.addEventListener('business-error', function (event: MessageEvent) {
+    eventSource.addEventListener('business-error', function(event: MessageEvent) {
       if (streamCompleted) return
 
       try {
@@ -1395,7 +1471,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
       }
     })
     // 处理错误
-    eventSource.onerror = function () {
+    eventSource.onerror = function() {
       if (streamCompleted || !isGenerating.value) return
       // 检查是否是正常的连接关闭
       if (eventSource?.readyState === EventSource.CONNECTING) {
@@ -1455,7 +1531,7 @@ const downloadCode = async () => {
     const url = `${API_BASE_URL}/app/download/${appId.value}`
     const response = await fetch(url, {
       method: 'GET',
-      credentials: 'include',
+      credentials: 'include'
     })
     if (!response.ok) {
       throw new Error(`下载失败: ${response.status}`)
@@ -1491,7 +1567,7 @@ const deployApp = async () => {
   deploying.value = true
   try {
     const res = await deployAppApi({
-      appId: appId.value as unknown as number,
+      appId: appId.value as unknown as number
     })
 
     if (res.data.code === 0 && res.data.data) {
@@ -1720,6 +1796,87 @@ const handleAiStreamEnd = async (data: {
     // 更新预览
     updatePreview()
   }
+}
+
+// 版本相关函数
+const toggleVersionSidebar = async () => {
+  showVersionSidebar.value = !showVersionSidebar.value
+  if (showVersionSidebar.value) {
+    await fetchVersions()
+  }
+}
+
+const fetchVersions = async () => {
+  if (!appId.value) return
+
+  versionsLoading.value = true
+  try {
+    const res = await listVersions({ appId: appId.value as unknown as number })
+    if (res.data.code === 0 && res.data.data) {
+      versions.value = res.data.data
+    } else {
+      message.error(res.data.message || '获取版本列表失败')
+    }
+  } catch (error) {
+    console.error('获取版本列表失败：', error)
+    message.error('获取版本列表失败，请重试')
+  } finally {
+    versionsLoading.value = false
+  }
+}
+
+const handleVersionClick = (version: API.AppVersionVO) => {
+  if (version.isCurrent === 1) {
+    message.info('当前已经是最新版本')
+    return
+  }
+  message.info(`查看版本 ${version.versionName} 的详细信息`)
+}
+const handleRollbackVersion = async (versionId: number) => {
+  try {
+    const res = await rollbackToVersion({ versionId: versionId as unknown as number })
+    if (res.data.code === 0) {
+      message.success('版本回退成功')
+      await fetchVersions()
+      await fetchAppInfo()
+      updatePreview()
+    } else {
+      message.error(res.data.message || '版本回退失败')
+    }
+  } catch (error) {
+    console.error('版本回退失败：', error)
+    message.error('版本回退失败，请重试')
+  }
+}
+
+const handleDeleteVersion = async (versionId: number) => {
+  try {
+    const res = await deleteVersion({ versionId: versionId as unknown as number })
+    if (res.data.code === 0) {
+      message.success('版本删除成功')
+      await fetchVersions()
+    } else {
+      message.error(res.data.message || '版本删除失败')
+    }
+  } catch (error) {
+    console.error('版本删除失败：', error)
+    message.error('版本删除失败，请重试')
+  }
+}
+const formatTime = (time: string) => {
+  if (!time) return ''
+  const date = new Date(time)
+  const now = new Date()
+  const diff = now.getTime() - date.getTime()
+  const minutes = Math.floor(diff / 60000)
+  const hours = Math.floor(diff / 3600000)
+  const days = Math.floor(diff / 86400000)
+
+  if (minutes < 1) return '刚刚'
+  if (minutes < 60) return `${minutes}分钟前`
+  if (hours < 24) return `${hours}小时前`
+  if (days < 7) return `${days}天前`
+  return date.toLocaleDateString()
 }
 
 // 添加实时AI消息（旧版兼容）
@@ -2328,5 +2485,172 @@ onUnmounted(() => {
   }
 }
 
+/* 版本侧边栏样式 */
+.version-sidebar {
+  width: 280px;
+  min-width: 280px;
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  border: 1px solid #e8e8e8;
+}
 
+.version-sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e8e8e8;
+  background: #fafafa;
+  color: #333;
+  font-size: 14px;
+  font-weight: 600;
+  gap: 8px;
+}
+
+.version-sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.version-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: #999;
+}
+
+.version-empty .anticon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.version-empty p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.version-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.version-item {
+  padding: 12px;
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: white;
+}
+
+.version-item:hover {
+  border-color: #1890ff;
+  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.1);
+}
+
+.version-item.version-current {
+  border-color: #52c41a;
+  background: #f6ffed;
+}
+
+.version-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.version-name {
+  font-weight: 600;
+  color: #333;
+  font-size: 14px;
+}
+
+.version-info {
+  margin-bottom: 8px;
+}
+
+.version-desc {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+.version-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #999;
+}
+
+.version-time {
+  flex: 1;
+}
+
+.version-user {
+  margin-left: 8px;
+}
+
+.version-actions {
+  display: flex;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.version-actions .ant-btn-link {
+  padding: 0;
+  height: auto;
+  font-size: 12px;
+}
+
+.version-sidebar-active {
+  background-color: #1890ff !important;
+  border-color: #1890ff !important;
+  color: white !important;
+}
+
+.version-sidebar-active:hover {
+  background-color: #40a9ff !important;
+  border-color: #40a9ff !important;
+}
+
+/* 响应式设计 - 版本侧边栏 */
+@media (max-width: 1024px) {
+  .version-sidebar {
+    width: 240px;
+    min-width: 240px;
+  }
+}
+
+@media (max-width: 768px) {
+  .version-sidebar {
+    position: fixed;
+    right: 0;
+    top: 0;
+    height: 100vh;
+    z-index: 1000;
+    width: 100%;
+    min-width: 100%;
+    border-radius: 0;
+  }
+
+  .version-sidebar-header {
+    padding: 16px;
+  }
+
+  .version-item {
+    padding: 16px;
+  }
+}
 </style>
