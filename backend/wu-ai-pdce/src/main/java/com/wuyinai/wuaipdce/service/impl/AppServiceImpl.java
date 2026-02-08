@@ -189,9 +189,20 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         //使用AI智能概括网站标题
         String string = aiCodeGenTitleServiceFactory.aiCodeGenTitleServicePrototype().generateHtmlCode(initPrompt);
         app.setAppName(string);
-        // 使用AI智能选择代码生成类型
-        AiCodeGenTypeRoutingService routingService = aiCodeGenTypeRoutingServiceFactory.aiCodeGenTypeRoutingServicePrototype();
-        CodeGenTypeEnum codeGenTypeEnum = routingService.routeCodeGenType(initPrompt);
+        // 使用AI智能选择代码生成类型，如果用户已指定则使用用户指定的类型
+        String userSpecifiedType = appAddRequest.getCodeGenType();
+        CodeGenTypeEnum codeGenTypeEnum;
+        if (StrUtil.isNotBlank(userSpecifiedType)) {
+            // 用户指定了类型，使用用户指定的类型
+            codeGenTypeEnum = CodeGenTypeEnum.getEnumByValue(userSpecifiedType);
+            if (codeGenTypeEnum == null) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "不支持的代码生成类型");
+            }
+        } else {
+            // 用户未指定类型，使用AI智能选择
+            AiCodeGenTypeRoutingService routingService = aiCodeGenTypeRoutingServiceFactory.aiCodeGenTypeRoutingServicePrototype();
+            codeGenTypeEnum = routingService.routeCodeGenType(initPrompt);
+        }
         app.setCodeGenType(codeGenTypeEnum.getValue());
         // 设置初始状态为开发中
         app.setStatus("开发中");

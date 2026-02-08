@@ -125,7 +125,7 @@ public class AiCodeGeneratorServiceFactory {
                         ))//工具如果不存在时，返回错误信息，防止AI幻觉。
                         .build();
             }
-            case HTML, MULTI_FILE -> {
+            case HTML, MULTI_FILE, MINIPROGRAM -> {
                 StreamingChatModel streamingChatModelPrototype = SpringContextUtil.getBean("streamingChatModelPrototype", StreamingChatModel.class);
                 yield AiServices.builder(AiCodeGeneratorService.class)
                         .chatModel(chatModel)

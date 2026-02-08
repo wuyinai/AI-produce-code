@@ -108,6 +108,10 @@ public class AiCodeGeneratorFacade {
                 MultiFileCodeResult result = aiCodeGeneratorService.generateMultiHtmlCode(userMessage);
                 yield CodeFileSaverExecutor.executeSaver(result, CodeGenTypeEnum.MULTI_FILE,appId);
             }
+            case MINIPROGRAM -> {
+                MultiFileCodeResult result = aiCodeGeneratorService.generateMiniprogramCode(userMessage);
+                yield CodeFileSaverExecutor.executeSaver(result, CodeGenTypeEnum.MINIPROGRAM,appId);
+            }
             default -> {
                 String errorMessage = "不支持的生成类型：" + codeGenTypeEnum.getValue();
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR, errorMessage);
@@ -134,6 +138,10 @@ public class AiCodeGeneratorFacade {
             case MULTI_FILE -> {
                 Flux<String> codeStream = aiCodeGeneratorService.generateMultiHtmlCodeStreaming(userMessage);
                 yield processCodeStream(codeStream, CodeGenTypeEnum.MULTI_FILE, appId);
+            }
+            case MINIPROGRAM -> {
+                Flux<String> codeStream = aiCodeGeneratorService.generateMiniprogramCodeStreaming(userMessage);
+                yield processCodeStream(codeStream, CodeGenTypeEnum.MINIPROGRAM, appId);
             }
             case VUE_PROJECT -> {
                 TokenStream codeStream = aiCodeGeneratorService.generateVueCodeStreaming(appId,userMessage);

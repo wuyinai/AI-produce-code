@@ -20,7 +20,7 @@ public class ServeDeployService {
         try {
             if (serveProcess == null || !serveProcess.isAlive()) {
                 ProcessBuilder pb = new ProcessBuilder(
-                        "D:\\AllWork\\Nvm\\NodeJs\\nodejs\\npx.cmd", "serve", CODE_BASE_DIR, "-p", String.valueOf(SERVE_PORT)
+                        "npx", "serve", CODE_BASE_DIR, "-p", String.valueOf(SERVE_PORT)
                 );
                 pb.redirectErrorStream(true);
                 serveProcess = pb.start();

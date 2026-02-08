@@ -49,6 +49,13 @@
 
             <div class="input-actions">
               <div class="input-meta">
+                <div class="app-type-selector">
+                  <span class="type-label">应用类型：</span>
+                  <a-radio-group v-model:value="appType" size="small">
+                    <a-radio-button value="web">Web应用</a-radio-button>
+                    <a-radio-button value="miniprogram">微信小程序</a-radio-button>
+                  </a-radio-group>
+                </div>
                 <span class="char-count">{{ userPrompt.length }}/1000</span>
                 <div class="quick-tips">
                   <span class="tips-icon">💡</span>
@@ -227,6 +234,9 @@ const loginUserStore = useLoginUserStore()
 const userPrompt = ref('')
 const creating = ref(false)
 
+// 应用类型：web 或 miniprogram
+const appType = ref<'web' | 'miniprogram'>('web')
+
 // 我的应用数据
 const myApps = ref<API.AppVO[]>([])
 const myAppsPage = reactive({
@@ -275,6 +285,7 @@ const createApp = async () => {
   try {
     const res = await addApp({
       initPrompt: userPrompt.value.trim(),
+      codeGenType: appType.value === 'miniprogram' ? 'miniprogram' : undefined,
     })
 
     if (res.data.code === 0 && res.data.data) {
@@ -716,6 +727,19 @@ onMounted(() => {
 
 .input-meta {
   flex: 1;
+}
+
+.app-type-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.type-label {
+  font-size: 14px;
+  color: #64748b;
+  font-weight: 500;
 }
 
 .char-count {

@@ -5,6 +5,7 @@ export enum CodeGenTypeEnum {
   HTML = 'html',
   MULTI_FILE = 'multi_file',
   VUE_PROJECT = 'vue_project',
+  MINIPROGRAM = 'miniprogram',
 }
 
 /**
@@ -22,6 +23,10 @@ export const CODE_GEN_TYPE_CONFIG = {
   [CodeGenTypeEnum.VUE_PROJECT]: {
     label: 'Vue 项目模式',
     value: CodeGenTypeEnum.VUE_PROJECT,
+  },
+  [CodeGenTypeEnum.MINIPROGRAM]: {
+    label: '微信小程序模式',
+    value: CodeGenTypeEnum.MINIPROGRAM,
   },
 } as const
 
