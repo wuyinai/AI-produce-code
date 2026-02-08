@@ -42,6 +42,24 @@ public class AppVersion implements Serializable {
     @Column("code_snapshot")
     private String codeSnapshot;
 
+    @Column("base_version_id")
+    private Long baseVersionId;
+
+    @Column("incremental_type")
+    private String incrementalType;
+
+    @Column("incremental_data")
+    private String incrementalData;
+
+    @Column("file_hashes")
+    private String fileHashes;
+
+    @Column("storage_size")
+    private Long storageSize;
+
+    @Column("compression_ratio")
+    private java.math.BigDecimal compressionRatio;
+
     @Column("trigger_type")
     private String triggerType;
 
