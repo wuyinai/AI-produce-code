@@ -27,7 +27,6 @@ public class CodeParserExecutor {
         return switch (codeGenType) {
             case HTML -> htmlCodeParser.parseCode(codeContent);
             case MULTI_FILE -> multiFileCodeParser.parseCode(codeContent);
-            case MINIPROGRAM -> multiFileCodeParser.parseCode(codeContent);
             default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR, "不支持的代码生成类型: " + codeGenType);
         };
     }

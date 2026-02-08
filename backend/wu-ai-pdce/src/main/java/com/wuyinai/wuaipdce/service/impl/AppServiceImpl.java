@@ -531,6 +531,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             sourceDir = distDir;
             log.info("Vue 项目构建成功，将部署 dist 目录: {}", distDir.getAbsolutePath());
         }
+        // 微信小程序、HTML、MULTI_FILE 不需要构建，直接部署
         // 8. 复制文件到部署目录
         String deployDirPath = AppConstant.CODE_DEPLOY_ROOT_DIR + File.separator + deployKey;
         try {

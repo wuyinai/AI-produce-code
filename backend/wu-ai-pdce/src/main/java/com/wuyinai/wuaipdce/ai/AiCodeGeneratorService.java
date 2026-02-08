@@ -28,15 +28,6 @@ public interface AiCodeGeneratorService {
     MultiFileCodeResult generateMultiHtmlCode(String userMessage);
 
     /**
-     * 一般输出生成微信小程序代码
-     *
-     * @param userMessage
-     * @return
-     */
-    @SystemMessage(fromResource = "prompt/codegen-miniprogram-prompt.txt")
-    MultiFileCodeResult generateMiniprogramCode(String userMessage);
-
-    /**
      * 流式输出生成HTML代码
      *
      * @param userMessage
@@ -57,11 +48,12 @@ public interface AiCodeGeneratorService {
     /**
      * 流式输出生成微信小程序代码
      *
+     * @param memoryId
      * @param userMessage
      * @return
      */
     @SystemMessage(fromResource = "prompt/codegen-miniprogram-prompt.txt")
-    Flux<String> generateMiniprogramCodeStreaming(String userMessage);
+    TokenStream generateMiniprogramCodeStreaming(@MemoryId long memoryId, @UserMessage String userMessage);
 
     /**
      * 生成Vue项目代码（流式）

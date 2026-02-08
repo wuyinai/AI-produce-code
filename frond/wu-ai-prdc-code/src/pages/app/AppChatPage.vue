@@ -383,19 +383,46 @@
           <template v-if="viewMode === 'preview'">
             <div v-if="!previewUrl && !isGenerating" class="preview-placeholder">
               <div class="placeholder-icon">🌐</div>
-              <p>网站文件生成完成后将在这里展示</p>
+              <p>{{ isMiniprogram ? '小程序文件生成完成后将在这里展示' : '网站文件生成完成后将在这里展示' }}</p>
             </div>
             <div v-else-if="isGenerating" class="preview-loading">
               <a-spin size="large" />
-              <p>正在生成网站...</p>
+              <p>{{ isMiniprogram ? '正在生成小程序...' : '正在生成网站...' }}</p>
             </div>
             <div v-else class="device-preview-container">
-              <iframe
-                :src="previewUrl"
-                class="preview-iframe"
-                frameborder="0"
-                @load="onIframeLoad"
-              ></iframe>
+              <template v-if="isMiniprogram">
+                <div class="miniprogram-preview">
+                  <div class="miniprogram-header">
+                    <FileOutlined />
+                    <span>微信小程序文件结构</span>
+                  </div>
+                  <div class="miniprogram-content">
+                    <a-alert
+                      message="微信小程序需要在微信开发者工具中打开"
+                      type="info"
+                      show-icon
+                      style="margin-bottom: 16px"
+                    />
+                    <div class="miniprogram-instructions">
+                      <h4>使用说明：</h4>
+                      <ol>
+                        <li>下载小程序代码</li>
+                        <li>打开微信开发者工具</li>
+                        <li>导入项目目录</li>
+                        <li>点击"编译"按钮预览</li>
+                      </ol>
+                    </div>
+                  </div>
+                </div>
+              </template>
+              <template v-else>
+                <iframe
+                  :src="previewUrl"
+                  class="preview-iframe"
+                  frameborder="0"
+                  @load="onIframeLoad"
+                ></iframe>
+              </template>
             </div>
           </template>
           <template v-else>
@@ -982,6 +1009,11 @@ const isCollaborator = computed(() => {
 // 更新isAdmin逻辑：包含管理员、应用创建者、协作者
 const isAdmin = computed(() => {
   return loginUserStore.loginUser.userRole === 'admin' || isOwner.value || isCollaborator.value
+})
+
+// 判断是否为微信小程序
+const isMiniprogram = computed(() => {
+  return appInfo.value?.codeGenType === 'miniprogram'
 })
 
 // 获取用户信息，优先从缓存中获取，缓存中没有则调用API
@@ -2378,6 +2410,60 @@ onUnmounted(() => {
   background-color: white;
   border: 8px solid #333;
   border-radius: 24px;
+}
+
+/* 微信小程序预览 */
+.miniprogram-preview {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.miniprogram-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e8e8e8;
+  background-color: #fff;
+  color: #333;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.miniprogram-content {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.miniprogram-instructions {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #e8e8e8;
+}
+
+.miniprogram-instructions h4 {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.miniprogram-instructions ol {
+  margin: 0;
+  padding-left: 20px;
+  line-height: 1.8;
+  color: #666;
+}
+
+.miniprogram-instructions li {
+  margin-bottom: 8px;
 }
 
 .selected-element-alert {

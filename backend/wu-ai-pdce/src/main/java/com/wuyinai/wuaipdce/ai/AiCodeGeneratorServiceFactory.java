@@ -112,7 +112,16 @@ public class AiCodeGeneratorServiceFactory {
         chatHistoryService.loadChatHistoryToMemory(appId, chatMemory, 20);//从数据库中获取对话，并保存到缓存中
         // 根据代码生成类型选择不同的模型配置
         return switch (codeGenType) {
-            case VUE_PROJECT -> {
+            case HTML, MULTI_FILE -> {
+                StreamingChatModel streamingChatModelPrototype = SpringContextUtil.getBean("streamingChatModelPrototype", StreamingChatModel.class);
+                yield AiServices.builder(AiCodeGeneratorService.class)
+                        .chatModel(chatModel)
+                        .streamingChatModel(streamingChatModelPrototype)
+                        .chatMemory(chatMemory)
+                        .inputGuardrails(new PromptSafetyInputGuardrail())// 添加输入护轨
+                        .build();
+            }
+            case MINIPROGRAM, VUE_PROJECT -> {
                 StreamingChatModel reasoningStreamingChatModelPrototype = SpringContextUtil.getBean("reasoningStreamingChatModelPrototype", StreamingChatModel.class);
                 yield AiServices.builder(AiCodeGeneratorService.class)
                         .streamingChatModel(reasoningStreamingChatModelPrototype)//使用的模型
@@ -123,15 +132,6 @@ public class AiCodeGeneratorServiceFactory {
                                 toolExecutionRequest, "Error: there is no tool called" + toolExecutionRequest
                                         .name()
                         ))//工具如果不存在时，返回错误信息，防止AI幻觉。
-                        .build();
-            }
-            case HTML, MULTI_FILE, MINIPROGRAM -> {
-                StreamingChatModel streamingChatModelPrototype = SpringContextUtil.getBean("streamingChatModelPrototype", StreamingChatModel.class);
-                yield AiServices.builder(AiCodeGeneratorService.class)
-                        .chatModel(chatModel)
-                        .streamingChatModel(streamingChatModelPrototype)
-                        .chatMemory(chatMemory)
-                        .inputGuardrails(new PromptSafetyInputGuardrail())// 添加输入护轨
                         .build();
             }
             default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR, "不支持的代码生成类型: " + codeGenType);
