@@ -42,6 +42,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 
 /**
@@ -315,6 +316,9 @@ public class AppController {
         }
         //构建应用代码目录路径（生成目录，非部署目录）
         String codeGenType = app.getCodeGenType();
+        if (Objects.equals(codeGenType, "miniprogram")){
+            codeGenType = "vue_project";
+        }
         String sourceDirName = codeGenType + "_" + appId;
         String sourceDirPath = AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + sourceDirName;
         //检查代码目录是否存在
