@@ -727,6 +727,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "应用不存在");
         }
         String codeGenType = app.getCodeGenType();
+        if (Objects.equals(codeGenType, "miniprogram")){
+            codeGenType = "vue_project";
+        }
         String sourceDirName = codeGenType + "_" + appId;
         String sourceDirPath = AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + sourceDirName;
         File sourceDir = new File(sourceDirPath);
@@ -793,6 +796,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "应用不存在");
         }
         String codeGenType = app.getCodeGenType();
+        if (Objects.equals(codeGenType, "miniprogram")){
+            codeGenType = "vue_project";
+        }
         String sourceDirName = codeGenType + "_" + appId;
         String sourceDirPath = AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + sourceDirName;
         File sourceDir = new File(sourceDirPath);
