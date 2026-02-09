@@ -138,16 +138,16 @@ const menuItems = computed<MenuProps['items']>(() => [
     title: '首页',
   },
   {
-    key: 'ai-chat',
-    icon: () => h(BulbOutlined),
-    label: '数据库生成',
-    title: '数据库生成',
-  },
-  {
     key: 'requirement',
     icon: () => h(FileTextOutlined),
     label: '需求生成',
     title: '需求生成',
+  },
+  {
+    key: 'ai-chat',
+    icon: () => h(BulbOutlined),
+    label: '数据库生成',
+    title: '数据库生成',
   },
   {
     key: 'code-gen',
