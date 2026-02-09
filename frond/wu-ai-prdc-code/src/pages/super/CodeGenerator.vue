@@ -1,15 +1,5 @@
 <template>
   <div class="code-generator">
-    <div class="page-header">
-      <div class="header-content">
-        <div class="header-icon">🎨</div>
-        <div class="header-text">
-          <h2>前端代码生成</h2>
-          <p>描述您的需求，AI 自动生成高质量的前端代码</p>
-        </div>
-      </div>
-    </div>
-
     <div class="generator-content">
       <div class="input-section">
         <a-card class="input-card">

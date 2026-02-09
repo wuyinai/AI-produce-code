@@ -1,15 +1,5 @@
 <template>
   <div class="ppt-generator">
-    <div class="page-header">
-      <div class="header-content">
-        <div class="header-icon">📊</div>
-        <div class="header-text">
-          <h2>PPT 生成</h2>
-          <p>快速生成专业的演示文稿，节省您的时间</p>
-        </div>
-      </div>
-    </div>
-
     <div class="generator-content">
       <div class="config-section">
         <a-card class="config-card">

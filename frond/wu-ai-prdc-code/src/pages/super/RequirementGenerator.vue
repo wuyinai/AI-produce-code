@@ -1,15 +1,5 @@
 <template>
   <div class="requirement-generator">
-    <div class="page-header">
-      <div class="header-content">
-        <div class="header-icon">📝</div>
-        <div class="header-text">
-          <h2>需求生成</h2>
-          <p>AI 智能分析，自动生成详细的需求文档</p>
-        </div>
-      </div>
-    </div>
-
     <div class="generator-content">
       <div class="input-section">
         <a-card class="input-card">

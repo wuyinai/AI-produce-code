@@ -1,15 +1,5 @@
 <template>
   <div class="backend-generator">
-    <div class="page-header">
-      <div class="header-content">
-        <div class="header-icon">⚙️</div>
-        <div class="header-text">
-          <h2>后端代码生成</h2>
-          <p>快速生成高质量的后端 API 和服务代码</p>
-        </div>
-      </div>
-    </div>
-
     <div class="generator-content">
       <div class="input-section">
         <a-card class="input-card">
